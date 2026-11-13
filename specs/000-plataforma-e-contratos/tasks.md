@@ -8,12 +8,12 @@ Formato: `[ID] [P?] [História] Descrição — arquivo(s)`. [P] = pode rodar em
 - [x] T003 [P] [H1] Criar `.gitignore`, `.env.example` e `README.md` com a seção "Como rodar" (placeholder) — raiz
 
 ## Fase 2 — Ambiente local (H1)
-- [ ] T004 [H1] Escrever `docker-compose.yml` com kafka, postgres, bank-db, redis, connect (`quay.io/debezium/connect`, fator de replicação 1 nos tópicos internos, `JsonConverter` sem schema — plan §5.1), prometheus e grafana, com healthchecks e tags de imagem exatas — `docker-compose.yml`
-- [ ] T005 [P] [H1] Script de criação de tópicos conforme plan §3.1 — `infra/kafka-init/create-topics.sh`
-- [ ] T006 [P] [H1] `init.sql` do Postgres do projeto (cria `rules_db` e `alerts_db`) — `infra/postgres/init.sql`
-- [ ] T007 [P] [H1] `init.sql` do banco legado, com tabelas `customers`, `customer_devices` e `transactions` (colunas em 003 plan §3 e 006 plan §3, **incluindo as colunas de dado pessoal sintético** que provam a minimização), 10 mil clientes sintéticos tokenizados. Tabelas no schema `bank` e duas publicações lógicas, `dbz_customers` (`customers`, `customer_devices`) e `dbz_transactions` (`transactions`) — plan §5.1 — `infra/bank-db/init.sql`
-- [ ] T008 [P] [H1] Provisionamento do Grafana (datasource + dashboard vazio "Motor de fraude") e `prometheus.yml` com os alvos 8081–8086 — `infra/grafana/`, `infra/prometheus/`
-- [ ] T009 [H1] Teste de aceite H1: script `infra/smoke.sh` que sobe o compose, espera os healthchecks e confere os tópicos com `kafka-topics --describe`
+- [x] T004 [H1] Escrever `docker-compose.yml` com kafka, postgres, bank-db, redis, connect (`quay.io/debezium/connect`, fator de replicação 1 nos tópicos internos, `JsonConverter` sem schema — plan §5.1), prometheus e grafana, com healthchecks e tags de imagem exatas — `docker-compose.yml`
+- [x] T005 [P] [H1] Script de criação de tópicos conforme plan §3.1 — `infra/kafka-init/create-topics.sh`
+- [x] T006 [P] [H1] `init.sql` do Postgres do projeto (cria `rules_db` e `alerts_db`) — `infra/postgres/init.sql`
+- [x] T007 [P] [H1] `init.sql` do banco legado, com tabelas `customers`, `customer_devices` e `transactions` (colunas em 003 plan §3 e 006 plan §3, **incluindo as colunas de dado pessoal sintético** que provam a minimização), 10 mil clientes sintéticos tokenizados. Tabelas no schema `bank` e duas publicações lógicas, `dbz_customers` (`customers`, `customer_devices`) e `dbz_transactions` (`transactions`) — plan §5.1 — `infra/bank-db/init.sql`
+- [x] T008 [P] [H1] Provisionamento do Grafana (datasource + dashboard vazio "Motor de fraude") e `prometheus.yml` com os alvos 8081–8086 — `infra/grafana/`, `infra/prometheus/`
+- [x] T009 [H1] Teste de aceite H1: script `infra/smoke.sh` que sobe o compose, espera os healthchecks e confere os tópicos com `kafka-topics --describe`
 
 ## Fase 3 — Contratos (H2)
 - [ ] T010 [H2] Escrever **testes** de validação com exemplos válidos/inválidos para cada schema (falham: os schemas ainda não existem). Incluir os casos de inteiro: `amount.value` = `10.5` falha, `10.0` passa (Draft 2020-12), `0` e negativos falham, acima de `2^53-1` falha. Casos de schema estrito: `cpf` na raiz e dentro de `counterparty` falham; campo a mais em `customer-profile` (ex.: `email`) falha; `features{}` com chave fora do padrão ou texto acima de 64 caracteres falha — plan §3.2 — `contracts/src/test/java/.../SchemasTest.java`, `contracts/src/test/resources/examples/`

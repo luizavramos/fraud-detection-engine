@@ -1,0 +1,23 @@
+{
+  "uid": "motor-fraude",
+  "title": "Motor de fraude",
+  "tags": ["motor-fraude"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Motor de fraude",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "Dashboard vazio de propósito. Os painéis entram junto com cada serviço (specs 001–006): RPS por status do receiver, p99 fim a fim do motor, alertas por severidade, lag de consumo, entregas por canal."
+      }
+    }
+  ]
+}
