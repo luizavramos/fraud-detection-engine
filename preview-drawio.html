@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Prévia draw.io</title>
+<style>body{margin:0;background:#fff;font-family:Arial} .mxgraph{border:1px solid #ddd;margin:8px;width:1960px}</style></head>
+<body>
+<div id="p0" class="mxgraph"></div>
+<div id="p1" class="mxgraph"></div>
+<script src="https://viewer.diagrams.net/js/viewer-static.min.js"></script>
+<script>
+const file = new URLSearchParams(location.search).get('f') || 'fluxo-bpmn-sequencia.drawio';
+fetch(file).then(r => r.text()).then(xml => {
+  document.getElementById('p0').setAttribute('data-mxgraph', JSON.stringify({ xml, page: 0, toolbar: '', resize: true, center: false }));
+  document.getElementById('p1').setAttribute('data-mxgraph', JSON.stringify({ xml, page: 1, toolbar: '', resize: true, center: false }));
+  GraphViewer.processElements();
+});
+</script>
+</body></html>

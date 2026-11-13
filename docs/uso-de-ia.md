@@ -1,0 +1,17 @@
+# Uso de IA no projeto
+
+O PDF do case pede que fique explícito **como e quando** a IA foi usada. Este arquivo é atualizado a cada etapa.
+
+Ferramenta: Claude (Anthropic), via Claude Code.
+
+## Registro por etapa
+
+| Data | Etapa | O que a IA fez | O que foi decidido por mim |
+|---|---|---|---|
+| 2026-11-13 | Specs e desenhos | Apoio na redação das specs de negócio e técnica (ADRs 1–13), da constituição, das specs 000–006 e dos desenhos (AWS e BPMN/sequência) | Arquitetura final: detecção assíncrona, motor Kafka Streams como único dono da decisão, regras CEL como dados com polling, JSON Schema em vez de Avro, rejeição do MongoDB, escopo das 8 regras iniciais |
+| 2026-11-13 | Revisão da spec 000 (antes do código) | Revisou plan/tasks da 000 e corrigiu detalhes técnicos: imagem do Debezium (`quay.io`), nome dos tópicos de CDC (schema `bank` + `topic.prefix=cdc`), tópico `cdc.bank.customer_devices` que faltava, publicação e slot por conector, inteiros no JSON Schema (`10.0` x `10.5`), dependência do ArchUnit via test-jar, medição do gerador de carga sem *coordinated omission* | Aprovar as correções. Ficaram em aberto para decisão: versão do Spring Boot (3.5.x x 4.x), recorte do `platform-commons`, onde aplicar `additionalProperties: false`, mover o gerador de carga para depois |
+| 2026-11-13 | Versão do Spring Boot | Pesquisou o calendário de suporte (3.5 sem suporte gratuito desde 30/06/2026; 4.0 até 31/12/2026; 4.1 até 31/07/2027), levantou os impactos (Jackson 3, Testcontainers 2, starters por módulo) e recomendou a 4.1 | **Escolhi a 4.0.x.** A IA emendou a constituição (v1.1), os planos 000/001/002/005 e a spec técnica, e incluiu na T002 a checagem de compatibilidade com Jackson 3 |
+| 2026-11-13 | Recorte do código compartilhado | Apontou que o `platform-commons` misturava Spring e Kafka Streams e propôs dividir em `platform-commons` (todos) e `platform-streams` (apps Kafka Streams), deixar o tracing HTTP com o Spring Boot e mascarar o JSON inteiro do log via `ValueMasker` | **Aprovei o recorte.** A IA atualizou as specs 000, 001, 003, 004 e 006 |
+| 2026-11-13 | Rigor dos schemas | Apontou que "`additionalProperties: false` nos blocos de identificação" deixava passar `cpf` na raiz e propôs: schemas estritos em todos os níveis, mapas abertos com limites, validação em produção só no receiver, testes de contrato nos produtores, leitura tolerante nos consumidores e regra de evolução | **Aprovei.** A IA atualizou a 000 (plan §3.2/§3.3/§7, T010, T015) e os testes de saída de 001, 003, 004 e 006 |
+| 2026-11-13 | Ordem do gerador de carga | Sugeriu adiar a Fase 5 da 000 (H4), já que o gerador só é validável com o receiver no ar, e localizou os pontos de uso (001/T122, 004/T428–T429) para encaixá-lo | **Aprovei mover.** O gerador entra depois do checkpoint da Fase 3 da 001 e antes da T122; a 000 fecha sem ele |
+| 2026-11-13 | 000 · Fase 1 (T001–T003) | Conferiu as versões no Maven Central (Boot 4.0.9; `json-schema-validator` 3.0.9 e `logstash-logback-encoder` 9.0 já em Jackson 3), escreveu o pom pai, gerou o Maven Wrapper (Maven 3.9.16, checksum fixado), criou os módulos `contracts` e `platform-commons` com testes smoke, `.gitignore`, `.env.example` e README. Propôs travar o Jackson 2 com o Maven Enforcer | Revisar o resultado da fase |
