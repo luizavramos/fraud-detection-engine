@@ -24,12 +24,12 @@ Formato: `[ID] [P?] [História] Descrição — arquivo(s)`. [P] = pode rodar em
 - [x] T015 [H2] Teste de ida e volta (record → JSON → validação → record) para cada contrato, e `ContractAssertions.assertProduces(...)` publicado no test-jar de `contracts` para os testes de contrato dos produtores (plan §3.3)
 
 ## Fase 4 — platform-commons (H3)
-- [ ] T016 [H3] **Teste** do mascaramento (CPF, e-mail, telefone, cartão) na mensagem, no MDC, em argumentos estruturados e em mensagem de exceção — `platform-commons/src/test/.../PiiValueMaskerTest.java`
-- [ ] T017 [H3] `PiiPatterns` + `PiiValueMasker` (ligado pelo `MaskingJsonGeneratorDecorator`) + `logback-base.xml` JSON reutilizável — `platform-commons/src/main/...`
-- [ ] T018 [P] [H3] `TraceParent` (lê/gera o header W3C) + `KafkaTracePropagation` (injeta e extrai `traceparent` em headers Kafka), com teste
-- [ ] T019 [P] [H3] `ClockProvider` (porta `Clock` injetável) com teste
-- [ ] T020 [H3] `CleanArchitectureRules` (ArchUnit) publicada como **test-jar** do `platform-commons` (os serviços a importam com `<type>test-jar</type>` e `<scope>test</scope>` **e** declaram `archunit-junit5` em scope test, porque test-jar não traz dependências transitivas), com um teste que prova que ela pega uma violação plantada. No mesmo passo, `CommonsBoundaryTest`: o código principal do commons não importa `org.springframework` nem `org.apache.kafka.streams`
-- [ ] T020a [H3] **Teste de aceite** H3: app Spring Boot mínimo em `platform-commons/src/test/.../sampleapp/` (Spring Boot, Actuator e Micrometer Tracing + OTel só em escopo de teste) usando o `logback-base.xml`. Prova: log JSON com CPF mascarado (cenário 1), requisição com `traceparent` → o log tem o mesmo `traceId` (cenário 2) e `/actuator/prometheus` responde — `H3AcceptanceTest.java`
+- [x] T016 [H3] **Teste** do mascaramento (CPF, e-mail, telefone, cartão) na mensagem, no MDC, em argumentos estruturados e em mensagem de exceção — `platform-commons/src/test/.../PiiValueMaskerTest.java`
+- [x] T017 [H3] `PiiPatterns` + `PiiValueMasker` (ligado pelo `MaskingJsonGeneratorDecorator`) + `logback-base.xml` JSON reutilizável — `platform-commons/src/main/...`
+- [x] T018 [P] [H3] `TraceParent` (lê/gera o header W3C) + `KafkaTracePropagation` (injeta e extrai `traceparent` em headers Kafka), com teste
+- [x] T019 [P] [H3] `ClockProvider` (porta `Clock` injetável) com teste
+- [x] T020 [H3] `CleanArchitectureRules` (ArchUnit) publicada como **test-jar** do `platform-commons` (os serviços a importam com `<type>test-jar</type>` e `<scope>test</scope>` **e** declaram `archunit-junit5` em scope test, porque test-jar não traz dependências transitivas), com um teste que prova que ela pega uma violação plantada. No mesmo passo, `CommonsBoundaryTest`: o código principal do commons não importa `org.springframework` nem `org.apache.kafka.streams`
+- [x] T020a [H3] **Teste de aceite** H3: app Spring Boot mínimo em `platform-commons/src/test/.../sampleapp/` (Spring Boot, Actuator e Micrometer Tracing + OTel só em escopo de teste) usando o `logback-base.xml`. Prova: log JSON com CPF mascarado (cenário 1), requisição com `traceparent` → o log tem o mesmo `traceId` (cenário 2) e `/actuator/prometheus` responde — `H3AcceptanceTest.java`
 
 ## Fase 5 — Gerador de carga (H4) — **adiada**
 > Executar **depois do checkpoint da Fase 3 da 001** (o receiver já aceita e publica) e **antes da T122 da 001**, que é o primeiro uso do gerador. Também é pré-requisito de T428/T429 da 004. Motivo: o gerador só pode ser validado de ponta a ponta com o receiver no ar, e adiá-lo libera mais cedo o caminho até o motor.

@@ -16,7 +16,7 @@ Esta unidade cria:
 | Plugins | `maven-compiler-plugin` (release 21), **Surefire** (testes unitários `*Test`), **Failsafe** (integração `*IT`, rodam em `verify`), `jacoco-maven-plugin`, `spring-boot-maven-plugin` (só nos serviços Spring), `maven-shade-plugin` ou `maven-jar-plugin` com classpath (apps Kafka Streams e gerador de carga), `exec-maven-plugin` (rodar o gerador) |
 | Validação de schema | `com.networknt:json-schema-validator` (Draft 2020-12) |
 | JSON | **Jackson 3** (pacote `tools.jackson`, `JsonMapper` imutável montado por builder; suporte a `java.time` já embutido, sem `JavaTimeModule`). `FAIL_ON_UNKNOWN_PROPERTIES=false` configurado explicitamente nos consumidores (tolerância a campos novos) e datas escritas como ISO-8601. Jackson 2 não entra no projeto: dependência que o puxe é exceção registrada aqui |
-| Logs | Logback + `logstash-logback-encoder`. Mascaramento pelo `MaskingJsonGeneratorDecorator` do próprio encoder, com um `ValueMasker` nosso (`PiiValueMasker`): mascara **todo** valor de texto do JSON (mensagem, MDC, argumentos, stack trace), não só a `%msg` |
+| Logs | Logback + `logstash-logback-encoder`. Mascaramento pelo `MaskingJsonGeneratorDecorator` do próprio encoder, com um `ValueMasker` nosso (`PiiValueMasker`): mascara **todo** valor de texto do JSON (mensagem, MDC, argumentos, stack trace), não só a `%msg`. No logstash-logback-encoder 9.x (Jackson 3) o elemento do XML é `<decorator class="…MaskingJsonGeneratorDecorator">`; com o nome antigo `<jsonGeneratorDecorator>` o Logback só emite um WARN e **ignora o mascaramento**, por isso os testes usam o `logback-base.xml` real |
 | Métricas / trace | Serviços Spring: Actuator + Micrometer Tracing com ponte OpenTelemetry (lê o `traceparent` HTTP e põe `traceId` no MDC sozinho). Apps Kafka Streams: Micrometer (Prometheus registry) via `platform-streams`. Em Kafka, o `traceparent` vai e volta pelo `KafkaTracePropagation` do commons |
 | Carga | Java 21 `HttpClient` com virtual threads e controle de taxa por token bucket; histograma com HdrHistogram. **Modelo aberto:** cada requisição tem um horário planejado (`t0 + i/tps`) e a latência é medida a partir dele, não do envio real. Isso evita a *coordinated omission* (quando o sistema engasga, o atraso na fila entra no p99 em vez de sumir) |
 
@@ -104,10 +104,12 @@ motor-fraude/
 │       ├── logging/PiiValueMasker.java       # ValueMasker do logstash-logback-encoder
 │       ├── tracing/TraceParent.java          # lê/gera o header W3C (sem SDK OpenTelemetry)
 │       ├── tracing/KafkaTracePropagation.java
+│       ├── tracing/StandardHeaders.java      # nomes dos headers Kafka padrão (traceparent, receivedAt, schemaVersion, commandType)
 │       ├── time/ClockProvider.java
 │       └── (src/main/resources) logback-base.xml
 │   └── src/test/
-│       ├── CleanArchitectureRules.java   # regras ArchUnit reutilizáveis, publicadas como test-jar (maven-jar-plugin goal test-jar)
+│       ├── time/MutableClock.java        # relógio controlado pelo teste (no test-jar, para todos os serviços)
+│       ├── CleanArchitectureRules.java   # (pacote architecture) 3 regras: camadas, miolo sem framework, sem "agora" direto; assertAll(classes, base). Regras ArchUnit reutilizáveis, publicadas como test-jar (maven-jar-plugin goal test-jar)
 │                                                    # test-jar não traz dependências transitivas: cada serviço declara archunit-junit5 (scope test) além do test-jar;
 │                                                    # a versão do ArchUnit fica no dependencyManagement do pom pai
 │       ├── CommonsBoundaryTest.java      # ArchUnit: o código principal do commons não importa org.springframework nem org.apache.kafka.streams
