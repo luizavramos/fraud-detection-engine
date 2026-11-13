@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:motorfraude:schema:fraud-alert:v1",
+  "title": "FraudAlert v1",
+  "description": "Alerta MEDIUM ou HIGH, motor -> notificacoes (topico fraud-alerts.v1). alertId e o UUIDv5 do transactionId: reprocessar a mesma transacao gera o mesmo alerta (idempotencia).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["alertId", "transactionId", "accountId", "severity", "score", "triggeredRules", "ruleSetVersion", "contextCompleteness", "eventReceivedAt", "detectedAt", "traceId"],
+  "properties": {
+    "alertId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", "description": "UUID versao 5." },
+    "transactionId": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{8,64}$" },
+    "accountId": { "type": "string", "pattern": "^acc_tok_[A-Za-z0-9]{4,64}$" },
+    "severity": { "enum": ["MEDIUM", "HIGH"] },
+    "score": { "type": "integer", "minimum": 1 },
+    "triggeredRules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ruleId", "version", "weight", "reason"],
+        "properties": {
+          "ruleId": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{1,31}$" },
+          "version": { "type": "integer", "minimum": 1 },
+          "weight": { "type": "integer", "minimum": 0, "maximum": 1000 },
+          "reason": { "type": "string", "minLength": 1, "maxLength": 200 }
+        }
+      }
+    },
+    "ruleSetVersion": { "type": "integer", "minimum": 1 },
+    "contextCompleteness": { "enum": ["FULL", "PARTIAL"] },
+    "eventReceivedAt": { "$ref": "#/$defs/instantUtc" },
+    "detectedAt": { "$ref": "#/$defs/instantUtc" },
+    "traceId": { "type": "string", "pattern": "^[0-9a-f]{32}$" }
+  },
+  "$defs": {
+    "instantUtc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+    }
+  }
+}

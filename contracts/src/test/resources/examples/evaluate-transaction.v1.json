@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "transactionId": "tx_20261113_0001",
+  "accountId": "acc_tok_00000001",
+  "customerId": "cus_tok_00000001",
+  "type": "PIX",
+  "amount": { "value": 15000, "currency": "BRL" },
+  "counterparty": { "accountToken": "acc_tok_00004711", "bankIspb": "60701190" },
+  "channel": "MOBILE",
+  "deviceIdHash": "dev_0f3a9c1d5b7e2a64",
+  "occurredAt": "2026-11-13T21:30:00Z"
+}

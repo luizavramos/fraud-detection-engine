@@ -1,0 +1,27 @@
+{
+  "version": 7,
+  "publishedAt": "2026-11-13T20:00:00Z",
+  "scoring": { "mediumThreshold": 40, "highThreshold": 70 },
+  "rules": [
+    {
+      "ruleId": "R01",
+      "version": 2,
+      "status": "ACTIVE",
+      "expression": "tx.amount > params.multiplier * features.avgAmount30d",
+      "params": { "multiplier": 10 },
+      "paramOverrides": { "PJ": { "multiplier": 20 } },
+      "weight": 45,
+      "reasonTemplate": "Valor muito acima da media de 30 dias"
+    },
+    {
+      "ruleId": "R09",
+      "version": 1,
+      "status": "SHADOW",
+      "expression": "features.count1m > params.maxCount",
+      "params": { "maxCount": 5 },
+      "paramOverrides": {},
+      "weight": 20,
+      "reasonTemplate": "Rajada em 1 minuto"
+    }
+  ]
+}

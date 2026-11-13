@@ -51,6 +51,8 @@ Esta unidade cria:
 | `fraud-alert.v1.json` | motor → notificações | `alertId` (UUIDv5 de `transactionId`), `transactionId`, `accountId`, `severity` (MEDIUM/HIGH), `score`, `triggeredRules[{ruleId,version,weight,reason}]`, `ruleSetVersion`, `contextCompleteness`, `eventReceivedAt`, `detectedAt`, `traceId` |
 | `rule-set.v1.json` | gestão de regras → motor (HTTP) | `version`, `publishedAt`, `scoring{mediumThreshold,highThreshold}`, `rules[{ruleId,version,status,expression,params,paramOverrides,weight,reasonTemplate}]` |
 
+**Valores adotados para os enums de transação** (as specs não os definiam; `[NEEDS CLARIFICATION]` resolvido com este padrão, ver spec 000 "Premissas"): `type` ∈ {`PIX`, `TED`, `BOLETO`, `CARD`}; `channel` ∈ {`MOBILE`, `WEB`, `API`, `BRANCH`}. Acrescentar valor é mudança de contrato: o schema e os consumidores vão primeiro (regra de evolução abaixo). Os identificadores são tokens: `acc_tok_…`, `cus_tok_…`, `dev_…`; `alertId` é UUID versão 5.
+
 **Schemas estritos em todos os níveis:** todo objeto de todo schema (raiz e aninhados) declara `additionalProperties: false`. Assim o schema barra dado pessoal tanto na entrada (um `cpf` enviado ao receiver) quanto na saída (uma coluna `email` do CDC vazando para `customer-profile.v1`).
 
 **Mapas abertos com limites:** `features{}` (decisão), `params` e `paramOverrides` (regras) são mapas por natureza. Neles:

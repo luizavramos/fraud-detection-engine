@@ -16,12 +16,12 @@ Formato: `[ID] [P?] [História] Descrição — arquivo(s)`. [P] = pode rodar em
 - [x] T009 [H1] Teste de aceite H1: script `infra/smoke.sh` que sobe o compose, espera os healthchecks e confere os tópicos com `kafka-topics --describe`
 
 ## Fase 3 — Contratos (H2)
-- [ ] T010 [H2] Escrever **testes** de validação com exemplos válidos/inválidos para cada schema (falham: os schemas ainda não existem). Incluir os casos de inteiro: `amount.value` = `10.5` falha, `10.0` passa (Draft 2020-12), `0` e negativos falham, acima de `2^53-1` falha. Casos de schema estrito: `cpf` na raiz e dentro de `counterparty` falham; campo a mais em `customer-profile` (ex.: `email`) falha; `features{}` com chave fora do padrão ou texto acima de 64 caracteres falha — plan §3.2 — `contracts/src/test/java/.../SchemasTest.java`, `contracts/src/test/resources/examples/`
-- [ ] T011 [P] [H2] Schemas `evaluate-transaction.v1.json` e `customer-profile.v1.json` — `contracts/src/main/resources/schemas/`
-- [ ] T012 [P] [H2] Schemas `transaction-history-record.v1.json` e `blocklist-entry.v1.json`
-- [ ] T013 [P] [H2] Schemas `fraud-decision.v1.json`, `fraud-alert.v1.json` e `rule-set.v1.json`
-- [ ] T014 [H2] Records Java + `Schemas.validate(...)` + `JsonCodec` (`JsonMapper` do Jackson 3 configurado) — `contracts/src/main/java/br/com/motorfraude/contracts/`
-- [ ] T015 [H2] Teste de ida e volta (record → JSON → validação → record) para cada contrato, e `ContractAssertions.assertProduces(...)` publicado no test-jar de `contracts` para os testes de contrato dos produtores (plan §3.3)
+- [x] T010 [H2] Escrever **testes** de validação com exemplos válidos/inválidos para cada schema (falham: os schemas ainda não existem). Incluir os casos de inteiro: `amount.value` = `10.5` falha, `10.0` passa (Draft 2020-12), `0` e negativos falham, acima de `2^53-1` falha. Casos de schema estrito: `cpf` na raiz e dentro de `counterparty` falham; campo a mais em `customer-profile` (ex.: `email`) falha; `features{}` com chave fora do padrão ou texto acima de 64 caracteres falha — plan §3.2 — `contracts/src/test/java/.../SchemasTest.java`, `contracts/src/test/resources/examples/`
+- [x] T011 [P] [H2] Schemas `evaluate-transaction.v1.json` e `customer-profile.v1.json` — `contracts/src/main/resources/schemas/`
+- [x] T012 [P] [H2] Schemas `transaction-history-record.v1.json` e `blocklist-entry.v1.json`
+- [x] T013 [P] [H2] Schemas `fraud-decision.v1.json`, `fraud-alert.v1.json` e `rule-set.v1.json`
+- [x] T014 [H2] Records Java + `Schemas.validate(...)` + `JsonCodec` (`JsonMapper` do Jackson 3 configurado) — `contracts/src/main/java/br/com/motorfraude/contracts/`
+- [x] T015 [H2] Teste de ida e volta (record → JSON → validação → record) para cada contrato, e `ContractAssertions.assertProduces(...)` publicado no test-jar de `contracts` para os testes de contrato dos produtores (plan §3.3)
 
 ## Fase 4 — platform-commons (H3)
 - [ ] T016 [H3] **Teste** do mascaramento (CPF, e-mail, telefone, cartão) na mensagem, no MDC, em argumentos estruturados e em mensagem de exceção — `platform-commons/src/test/.../PiiValueMaskerTest.java`
