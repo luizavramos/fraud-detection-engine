@@ -223,6 +223,31 @@ services:
       retries: 12
       start_period: 25s
 
+  # Perfil do cliente (spec 003): Kafka Streams sobre o CDC do banco legado. Antes, no repositório customer-service ao lado:
+  # ./mvnw -DskipTests package (o Dockerfile chega com a Fase 4). Registrar o conector: sh infra/connect/register-connectors.sh
+  customer-service:
+    profiles: ["app"]
+    build: ${CUSTOMER_SERVICE_CONTEXT:-../customer-service}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "${CUSTOMER_SERVICE_HOST_PORT:-8083}:8083"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      HTTP_PORT: "8083"
+      STATE_DIR: /data
+    volumes:
+      - customer-service-data:/data
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8083/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
 volumes:
   postgres-data:
   bank-db-data:
+  customer-service-data:
