@@ -61,12 +61,12 @@ Como coordenador, quero que só alguém diferente do autor possa ativar uma regr
 
 ## Casos de borda
 - **Duas ativações simultâneas:** a versão do conjunto é gerada por sequência no banco, com transação serializável na publicação. Nenhum conjunto se perde.
-- **Expressão cara demais:** o custo estimado pelo CEL acima do limite gera `422`.
+- **Expressão complexa demais:** nós ou profundidade acima do limite gera `422`.
 - **Rollback para versão inexistente:** `404`.
 
 ## Requisitos funcionais
 - **FR-001:** o `rules-kernel` DEVE definir o catálogo de features (nome e tipo) que as expressões podem usar: `tx.*`, `profile.*`, `features.*`, `lists.*`, `params.*`.
-- **FR-002:** o `rules-kernel` DEVE compilar expressões CEL com checagem de tipos contra o catálogo e rejeitar as que excedem o custo máximo.
+- **FR-002:** o `rules-kernel` DEVE compilar expressões CEL com checagem de tipos contra o catálogo e rejeitar as que excedem o limite de complexidade (número de nós e profundidade da expressão; o cel-java não tem estimador de custo, ver `rules-kernel/SPIKE.md`).
 - **FR-003:** o `rules-kernel` DEVE avaliar um conjunto compilado contra um contexto e devolver as regras disparadas (ACTIVE e SHADOW separadas), com o motivo preenchido pelo `reasonTemplate`.
 - **FR-004:** o serviço DEVE versionar regras de forma imutável: mudar o conteúdo cria uma nova versão.
 - **FR-005:** cada ativação, desligamento, modo sombra, rollback ou mudança de scoring DEVE publicar um **novo** conjunto com versão crescente.

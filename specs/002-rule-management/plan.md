@@ -8,7 +8,7 @@ Esta unidade tem dois módulos:
 ## 2. Contexto técnico
 | Item | Valor |
 |---|---|
-| CEL | `dev.cel:cel` (cel-java), compilação com declarações tipadas, `CelEstimatedCost` para limitar o custo |
+| CEL | `dev.cel:cel` (cel-java), compilação com declarações tipadas; sem estimador de custo no Java (spike T201), então o limite é de nós (`maxParseExpressionNodeCount`) e profundidade (`AstDepthLimitValidator`) |
 | Serviço | Spring Boot 4.0.x, Spring MVC, Spring Security (usuários em memória), Spring Data JDBC |
 | Banco | PostgreSQL 16, banco `rules_db`, migrações Flyway |
 | Porta | 8082 |
@@ -42,7 +42,7 @@ public record RuleSetDefinition(long version, Instant publishedAt, Scoring scori
 public record Scoring(int mediumThreshold, int highThreshold) {}
 
 public final class RuleCompiler {
-    CompilationResult compile(RuleDefinition rule);                 // erros de sintaxe, tipo, custo
+    CompilationResult compile(RuleDefinition rule);                 // erros de sintaxe, tipo, complexidade
     CompiledRuleSet compileAll(RuleSetDefinition set);                // falha se qualquer regra falhar
 }
 public final class CompiledRuleSet {

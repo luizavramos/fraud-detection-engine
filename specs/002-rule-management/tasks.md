@@ -3,13 +3,13 @@
 Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/motorfraude/rules/`
 
 ## Fase 1 — Setup e spike
-- [ ] T201 Spike de 2 h com cel-java: compilar `features.count5m > params.maxCount` com declarações tipadas, avaliar e estimar custo. Registrar o resultado em `rules-kernel/SPIKE.md` (passou / plano B)
-- [ ] T202 [P] Criar os módulos `rules-kernel` (Java puro) e `rule-management` (Spring Boot), com testes ArchUnit
+- [x] T201 Spike com cel-java: compilar `features.count5m > params.maxCount` com declarações tipadas e avaliar. Resultado em `rules-kernel/SPIKE.md`: passou; sem estimador de custo no Java, o limite é de nós e profundidade
+- [ ] T202 [P] Criar os módulos `rules-kernel` (Java puro) e `rule-management` (Spring Boot), com testes ArchUnit — **`rules-kernel` feito (repositório próprio, ArchUnit: `model` e `catalog` não conhecem o CEL); `rule-management` na Fase 3**
 - [ ] T203 [P] Adicionar `rule-management` ao compose (porta 8082, depende de postgres) e ao Prometheus
 
 ## Fase 2 — `rules-kernel` (bloqueia 004)
-- [ ] T204 **Testes** de compilação: feature desconhecida, tipo errado, custo acima do limite, expressão válida — `rules-kernel/src/test/.../RuleCompilerTest.java`
-- [ ] T205 Implementar `FeatureCatalog` (declarações CEL do plan §3.1), a função `max(int,int)` e o `RuleCompiler`
+- [x] T204 **Testes** de compilação: feature desconhecida, tipo errado, nós ou profundidade acima do limite, expressão válida — `rules-kernel/src/test/.../RuleCompilerTest.java`
+- [x] T205 Implementar `FeatureCatalog` (declarações CEL do plan §3.1), a função `max(int,int)` e o `RuleCompiler`
 - [ ] T206 **Testes** de avaliação: dispara e não dispara, override PJ, SHADOW não soma, erro de regra conta como não disparada, severidade pelas faixas — `CompiledRuleSetTest.java`
 - [ ] T207 Implementar `CompiledRuleSet.evaluate` e `EvaluationContext` (montado a partir de mapas tipados)
 - [ ] T208 **Testes** das 8 regras iniciais (plan §5): um caso que dispara e um que não dispara para cada — `InitialRulesTest.java`, com as expressões em `src/test/resources/initial-rules.json`
