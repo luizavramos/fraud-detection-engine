@@ -24,9 +24,9 @@ Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/
 - [x] T213 Implementar os casos de uso e o `RuleSetPublisher` interno (plan §4.2)
 
 ## Fase 4 — Persistência
-- [ ] T214 Flyway `V1__schema.sql` (plan §4.3) e `V2__seed_rules.sql` (8 regras + scoring 40/70 + conjunto versão 1)
-- [ ] T215 **Teste de integração** (Testcontainers Postgres): repositórios, publicação concorrente (10 threads ativando ao mesmo tempo → versões sem buraco nem colisão), `audit_log`
-- [ ] T216 Implementar os repositórios JDBC
+- [x] T214 Flyway `V1__schema.sql` (plan §4.3) e `V2__seed_rules.sql` (8 regras + scoring 40/70 + conjunto versão 1)
+- [x] T215 **Teste de integração** (Testcontainers Postgres): repositórios, publicação concorrente (10 threads ativando ao mesmo tempo → versões sem buraco nem colisão), `audit_log`
+- [x] T216 Implementar os repositórios JDBC
 
 ## Fase 5 — API (H1–H4)
 - [ ] T217 **Testes** REST: 201/422 na criação, `:validate` com casos de teste, `:activate`/`:disable`/`:rollback`, `PUT /scoring`, 404, papéis — `adapters/in/rest/*Test.java`

@@ -9,7 +9,7 @@ Esta unidade tem dois módulos:
 | Item | Valor |
 |---|---|
 | CEL | `dev.cel:cel` (cel-java), compilação com declarações tipadas; sem estimador de custo no Java (spike T201), então o limite é de nós (`maxParseExpressionNodeCount`) e profundidade (`AstDepthLimitValidator`) |
-| Serviço | Spring Boot 4.0.x, Spring MVC, Spring Security (usuários em memória), Spring Data JDBC |
+| Serviço | Spring Boot 4.0.x, Spring MVC, Spring Security (usuários em memória), Spring JDBC (`JdbcClient`, SQL explícito para `jsonb` e transação serializável) |
 | Banco | PostgreSQL 16, banco `rules_db`, migrações Flyway |
 | Porta | 8082 |
 
@@ -81,6 +81,13 @@ Uma única transação no banco:
 
 ### 4.3 Modelo de dados (Flyway `V1__schema.sql`)
 Igual ao ERD da spec técnica §4.4: `rules`, `rule_versions` (imutável, PK `(rule_id, version)`), `rule_sets` (com `medium_threshold`, `high_threshold`), `rule_set_items` (PK `(rule_set_version, rule_id)`) e `audit_log`.
+
+Decisões da implementação (Fase 4):
+- `rule_set_items` tem coluna `status` (ACTIVE ou SHADOW): é o status que a versão tinha **naquele** conjunto, e o rollback o restaura.
+- A imutabilidade de `rule_versions` é imposta por **gatilho**: só `status` e `approved_by` podem mudar. O `audit_log` recusa `UPDATE` e `DELETE` por gatilho.
+- A transação de publicação é `SERIALIZABLE` com nova tentativa em conflito (SQLSTATE 40001); 10 ativações simultâneas geram as versões em sequência.
+- **Exceção ao "sem Jackson 2":** o Flyway 11 exige o `ObjectMapper` do Jackson 2 (sem ele: `NoClassDefFoundError`). O Enforcer deste módulo o permite, e um teste ArchUnit garante que o nosso código usa só Jackson 3.
+- O seed (V2) repete as expressões de `rules-kernel/src/test/resources/initial-rules.json`; o teste confere que as 8 compilam juntas (SC-003).
 
 ### 4.4 API
 | Método | Rota | Papel | Resposta |
