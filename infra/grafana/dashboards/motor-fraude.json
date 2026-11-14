@@ -4,7 +4,7 @@
   "tags": ["motor-fraude"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "editable": true,
   "refresh": "10s",
   "time": { "from": "now-1h", "to": "now" },
@@ -16,7 +16,7 @@
       "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
       "options": {
         "mode": "markdown",
-        "content": "Painéis entram junto com cada serviço (specs 001–006). Já disponível: **Receiver** (spec 001). Ainda por vir: p99 fim a fim do motor, alertas por severidade, lag de consumo, entregas por canal."
+        "content": "Painéis entram junto com cada serviço (specs 001–006). Já disponível: **Receiver** (spec 001) e **Gestão de regras** (spec 002). Ainda por vir: p99 fim a fim do motor, alertas por severidade, lag de consumo, entregas por canal."
       }
     },
     {
@@ -127,6 +127,99 @@
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "sum(rate(receiver_redis_release_failures_total[1m]))",
           "legendFormat": "falha no release"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "row",
+      "title": "Gestão de regras (spec 002)",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 },
+      "panels": []
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Conjuntos publicados, por ação (últimos 5 min)",
+      "description": "Cada ativação, sombra, desligamento, rollback ou mudança de scoring publica um conjunto novo. Aparece em zero desde a partida do serviço.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (action) (increase(rules_published_total[5m]))",
+          "legendFormat": "{{action}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Falhas de compilação (últimos 5 min)",
+      "description": "rule: a expressão de uma regra nova ou de uma nova versão não compilou (422 na criação). rule-set: o conjunto resultante não compilou e nada foi publicado.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (kind) (increase(rules_compilation_failures_total[5m]))",
+          "legendFormat": "{{kind}}"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "GET /v1/rule-sets/active: p50 e p99, por status",
+      "description": "O que o motor consulta a cada 30 s, já com a autenticação. 304 = nada mudou. Meta do SC-002: p99 do 304 até 10 ms.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 29 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "fillOpacity": 0 },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.01 }] }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum by (le, status) (rate(rule_set_active_request_seconds_bucket[1m])))",
+          "legendFormat": "p99 {{status}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.5, sum by (le, status) (rate(rule_set_active_request_seconds_bucket[1m])))",
+          "legendFormat": "p50 {{status}}"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Consultas do motor ao conjunto ativo (por segundo, por status)",
+      "description": "Em regime, quase tudo é 304. Um 200 aparece quando uma versão nova é publicada.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 29 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 10, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (status) (rate(rule_set_active_request_seconds_count[1m]))",
+          "legendFormat": "{{status}}"
         }
       ]
     }

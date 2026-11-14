@@ -41,8 +41,8 @@ Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/
 - [x] T222 (P3, opcional) **Teste** + implementação do maker-checker (`403` quando aprovador = autor; CHECK no banco)
 
 ## Fase 7 — Observabilidade e documentação
-- [ ] T223 Métricas `rules_published_total`, `rules_compilation_failures_total` e `rule_set_active_request_seconds` + painel no Grafana
-- [ ] T224 Coleção de chamadas da demo (`docs/demo-regras.http`): criar regra, validar, ativar em sombra, ativar, desligar, rollback
+- [x] T223 Métricas `rules_published_total`, `rules_compilation_failures_total` e `rule_set_active_request_seconds` + painel no Grafana
+- [x] T224 Coleção de chamadas da demo (`docs/demo-regras.http`): criar regra, validar, ativar em sombra, ativar, desligar, rollback
 - [x] T225 `Idempotency-Key` nos POST e PUT da API (plano §4.4): resposta guardada por usuário e chave, repetida em reenvios, 422 se a chave for reaproveitada com outra requisição, 409 enquanto a primeira executa. Acrescentada depois da Fase 5, a pedido do usuário
 
 ## Dependências

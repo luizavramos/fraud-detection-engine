@@ -1,0 +1,157 @@
+# Roteiro da demo de gestão de regras (spec 002): criar, validar, sombra, ativar, mudar threshold, desligar e reverter,
+# tudo pela API, sem redeploy nem restart. Funciona no IntelliJ/JetBrains HTTP Client e na extensão REST Client do VS Code.
+#
+# Antes: docker compose up -d postgres && docker compose --profile app up -d --build rule-management
+# Usuários locais: analista (cria, valida, sombra, desliga), coordenador (ativa, reverte, muda o scoring) e motor (só lê).
+# Quem criou a regra não pode ativá-la: por isso o analista cria e o coordenador ativa.
+# Rode um passo de cada vez, na ordem. Para repetir o roteiro, troque o valor de @ruleId.
+
+@host = http://localhost:8082
+@ruleId = DEMO{{$timestamp}}
+
+### 0. Saúde do serviço (sem login)
+GET {{host}}/actuator/health
+
+### 1. Validar sem gravar nada: expressão e casos de teste (analista)
+POST {{host}}/v1/rules:validate
+Authorization: Basic analista analista-local
+Content-Type: application/json
+
+{
+  "expression": "features.count5m > params.maxCount",
+  "params": { "maxCount": 5 },
+  "paramOverrides": { "PJ": { "maxCount": 30 } },
+  "weight": 25,
+  "reasonTemplate": "Mais de {params.maxCount} transações em 5 min",
+  "testCases": [
+    { "name": "6 transações dispara", "context": { "features.count5m": 6 }, "expectedHit": true },
+    { "name": "5 transações não dispara", "context": { "features.count5m": 5 }, "expectedHit": false },
+    { "name": "PJ com 6 não dispara (limite 30)", "context": { "features.count5m": 6, "profile.segment": "PJ" }, "expectedHit": false }
+  ]
+}
+
+### 2. Expressão com feature que não existe: 422 com a mensagem do kernel
+POST {{host}}/v1/rules
+Authorization: Basic analista analista-local
+Content-Type: application/json
+
+{
+  "ruleId": "{{ruleId}}",
+  "expression": "features.contagem5m > 3",
+  "params": {},
+  "paramOverrides": {},
+  "weight": 10,
+  "reasonTemplate": "Regra com erro"
+}
+
+### 3. Criar a regra (analista): versão 1 em DRAFT
+POST {{host}}/v1/rules
+Authorization: Basic analista analista-local
+Content-Type: application/json
+Idempotency-Key: criar-{{ruleId}}
+
+{
+  "ruleId": "{{ruleId}}",
+  "expression": "features.count5m > params.maxCount",
+  "params": { "maxCount": 5 },
+  "paramOverrides": { "PJ": { "maxCount": 30 } },
+  "weight": 25,
+  "reasonTemplate": "Mais de {params.maxCount} transações em 5 min"
+}
+
+### 3b. Repetir o mesmo POST com a mesma Idempotency-Key: devolve a mesma resposta (Idempotent-Replayed: true) e não cria de novo
+POST {{host}}/v1/rules
+Authorization: Basic analista analista-local
+Content-Type: application/json
+Idempotency-Key: criar-{{ruleId}}
+
+{
+  "ruleId": "{{ruleId}}",
+  "expression": "features.count5m > params.maxCount",
+  "params": { "maxCount": 5 },
+  "paramOverrides": { "PJ": { "maxCount": 30 } },
+  "weight": 25,
+  "reasonTemplate": "Mais de {params.maxCount} transações em 5 min"
+}
+
+### 4. O analista tenta ativar: 403 (falta o papel de aprovador)
+POST {{host}}/v1/rules/{{ruleId}}/versions/1:activate
+Authorization: Basic analista analista-local
+
+### 5. Pôr em modo sombra (analista): o motor avalia e registra, mas a regra não soma pontos
+POST {{host}}/v1/rules/{{ruleId}}/versions/1:shadow
+Authorization: Basic analista analista-local
+
+### 6. O motor lê o conjunto ativo: veja o ETag e a regra com status SHADOW
+GET {{host}}/v1/rule-sets/active
+Authorization: Basic motor motor-local
+
+### 7. Perguntar "mudou?": troque o número do ETag pelo da resposta anterior. Sem mudança, 304 e sem corpo
+GET {{host}}/v1/rule-sets/active
+Authorization: Basic motor motor-local
+If-None-Match: "2"
+
+### 8. Ativar (coordenador): a regra passa a somar pontos
+POST {{host}}/v1/rules/{{ruleId}}/versions/1:activate
+Authorization: Basic coordenador coordenador-local
+
+### 8b. O coordenador cria e tenta ativar a PRÓPRIA regra: 403 (aprovação por outra pessoa)
+POST {{host}}/v1/rules
+Authorization: Basic coordenador coordenador-local
+Content-Type: application/json
+
+{
+  "ruleId": "{{ruleId}}B",
+  "expression": "features.count1m > params.maxCount",
+  "params": { "maxCount": 5 },
+  "paramOverrides": {},
+  "weight": 10,
+  "reasonTemplate": "Rajada em 1 minuto"
+}
+
+###
+POST {{host}}/v1/rules/{{ruleId}}B/versions/1:activate
+Authorization: Basic coordenador coordenador-local
+
+### 9. Mudar o threshold de 5 para 3 sem tocar na lógica: nova versão só com o parâmetro novo (analista)
+POST {{host}}/v1/rules/{{ruleId}}/versions
+Authorization: Basic analista analista-local
+Content-Type: application/json
+
+{
+  "expression": "features.count5m > params.maxCount",
+  "params": { "maxCount": 3 },
+  "paramOverrides": { "PJ": { "maxCount": 30 } },
+  "weight": 25,
+  "reasonTemplate": "Mais de {params.maxCount} transações em 5 min"
+}
+
+### 10. Ativar a versão 2 (coordenador): a versão 1 sai do conjunto
+POST {{host}}/v1/rules/{{ruleId}}/versions/2:activate
+Authorization: Basic coordenador coordenador-local
+
+### 11. Mudar as faixas de severidade (coordenador): MÉDIA a partir de 30 e ALTA a partir de 60
+PUT {{host}}/v1/scoring
+Authorization: Basic coordenador coordenador-local
+Content-Type: application/json
+
+{ "mediumThreshold": 30, "highThreshold": 60 }
+
+### 12. Kill switch: desligar a regra (analista). Publica um conjunto sem ela
+POST {{host}}/v1/rules/{{ruleId}}:disable
+Authorization: Basic analista analista-local
+
+### 13. Reverter para o conjunto 1 (o seed, com as 8 regras iniciais e as faixas 40/70). O histórico não é apagado
+POST {{host}}/v1/rule-sets/1:rollback
+Authorization: Basic coordenador coordenador-local
+
+### 14. Histórico da regra: todas as versões, com autor e aprovador
+GET {{host}}/v1/rules/{{ruleId}}
+Authorization: Basic motor motor-local
+
+### 15. Lista de regras
+GET {{host}}/v1/rules
+Authorization: Basic motor motor-local
+
+### 16. Métricas: publicações por ação, falhas de compilação e o tempo do GET /active
+GET {{host}}/actuator/prometheus
