@@ -72,7 +72,7 @@ O projeto segue uma estrutura de microsserviços, **um repositório por serviço
 | `receiver` | Porta de entrada HTTP (spec 001) |
 | `load-generator` | Gerador de carga (spec 000, Fase 5) |
 
-Os demais serviços (`rule-management`, `rules-kernel`, `detection-engine` etc.) ganham um repositório cada, quando a spec for implementada.
+Os demais serviços (`customer-service`, `detection-engine` etc.) ganham um repositório cada, quando a spec for implementada. Já existem `rules-kernel` (biblioteca de regras) e `rule-management` (gestão de regras, porta 8082; `docker compose --profile app up -d --build rule-management`).
 
 **Código compartilhado.** `motor-fraude-parent`, `contracts` e `platform-commons` são artefatos Maven versionados (`0.1.0`), publicados no GitHub Packages (repositórios privados; token em `~/.m2/settings.xml`, ver o README do pom pai). Sem registry, instale localmente, nessa ordem: `./mvnw install` em `motor-fraude-parent`, `contracts` e `platform-commons`.
 

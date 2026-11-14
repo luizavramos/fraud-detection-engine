@@ -4,8 +4,8 @@ Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/
 
 ## Fase 1 — Setup e spike
 - [x] T201 Spike com cel-java: compilar `features.count5m > params.maxCount` com declarações tipadas e avaliar. Resultado em `rules-kernel/SPIKE.md`: passou; sem estimador de custo no Java, o limite é de nós e profundidade
-- [ ] T202 [P] Criar os módulos `rules-kernel` (Java puro) e `rule-management` (Spring Boot), com testes ArchUnit — **`rules-kernel` feito (repositório próprio, ArchUnit: `model` e `catalog` não conhecem o CEL); `rule-management` criado na Fase 3 (repositório próprio, ArchUnit; Spring Boot entra nas Fases 4 e 5)**
-- [ ] T203 [P] Adicionar `rule-management` ao compose (porta 8082, depende de postgres) e ao Prometheus
+- [x] T202 [P] Criar os módulos `rules-kernel` (Java puro) e `rule-management` (Spring Boot), com testes ArchUnit — ambos em repositórios próprios
+- [x] T203 [P] Adicionar `rule-management` ao compose (porta 8082, depende de postgres) e ao Prometheus
 
 ## Fase 2 — `rules-kernel` (bloqueia 004)
 - [x] T204 **Testes** de compilação: feature desconhecida, tipo errado, nós ou profundidade acima do limite, expressão válida — `rules-kernel/src/test/.../RuleCompilerTest.java`
@@ -29,10 +29,10 @@ Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/
 - [x] T216 Implementar os repositórios JDBC
 
 ## Fase 5 — API (H1–H4)
-- [ ] T217 **Testes** REST: 201/422 na criação, `:validate` com casos de teste, `:activate`/`:disable`/`:rollback`, `PUT /scoring`, 404, papéis — `adapters/in/rest/*Test.java`
-- [ ] T218 Implementar os controllers + Problem Details + Spring Security (usuários em memória `analista`, `coordenador`)
-- [ ] T219 **Teste** de `GET /v1/rule-sets/active`: 200 com `ETag`; 304 com `If-None-Match`; o corpo valida contra `rule-set.v1`
-- [ ] T220 Implementar o `RuleSetController` com cache por versão
+- [x] T217 **Testes** REST: 201/422 na criação, `:validate` com casos de teste, `:activate`/`:disable`/`:rollback`, `PUT /scoring`, 404, papéis — `adapters/in/rest/*Test.java`
+- [x] T218 Implementar os controllers + Problem Details + Spring Security (usuários em memória `analista`, `coordenador`)
+- [x] T219 **Teste** de `GET /v1/rule-sets/active`: 200 com `ETag`; 304 com `If-None-Match`; o corpo valida contra `rule-set.v1`
+- [x] T220 Implementar o `RuleSetController` com cache por versão
 
 **Checkpoint:** demo de criar, validar e ativar uma regra pela API (SC-001).
 

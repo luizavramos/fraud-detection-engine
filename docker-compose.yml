@@ -196,6 +196,32 @@ services:
       retries: 12
       start_period: 20s
 
+  # Gestão de regras (spec 002). Antes, no repositório rule-management ao lado: ./mvnw -DskipTests package
+  # Subir: docker compose --profile app up -d --build rule-management
+  rule-management:
+    profiles: ["app"]
+    build: ${RULE_MANAGEMENT_CONTEXT:-../rule-management}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${RULE_MANAGEMENT_HOST_PORT:-8082}:8082"
+    environment:
+      RULES_DB_URL: jdbc:postgresql://postgres:5432/rules_db
+      RULES_DB_USER: ${POSTGRES_USER:-motorfraude}
+      RULES_DB_PASSWORD: ${POSTGRES_PASSWORD:-motorfraude}
+      # Usuários locais da API (ver application.yml); troque as senhas fora do desenvolvimento
+      RULES_ANALISTA_PASSWORD: ${RULES_ANALISTA_PASSWORD:-analista-local}
+      RULES_COORDENADOR_PASSWORD: ${RULES_COORDENADOR_PASSWORD:-coordenador-local}
+      RULES_MOTOR_PASSWORD: ${RULES_MOTOR_PASSWORD:-motor-local}
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8082/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 25s
+
 volumes:
   postgres-data:
   bank-db-data:

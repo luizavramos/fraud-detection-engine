@@ -87,6 +87,11 @@ Decisões da implementação (Fase 4):
 - A imutabilidade de `rule_versions` é imposta por **gatilho**: só `status` e `approved_by` podem mudar. O `audit_log` recusa `UPDATE` e `DELETE` por gatilho.
 - A transação de publicação é `SERIALIZABLE` com nova tentativa em conflito (SQLSTATE 40001); 10 ativações simultâneas geram as versões em sequência.
 - **Exceção ao "sem Jackson 2":** o Flyway 11 exige o `ObjectMapper` do Jackson 2 (sem ele: `NoClassDefFoundError`). O Enforcer deste módulo o permite, e um teste ArchUnit garante que o nosso código usa só Jackson 3.
+Decisões da implementação (Fase 5):
+- **Papéis:** `RULE_AUTHOR` cria, valida, põe em sombra e desliga; `RULE_APPROVER` ativa, reverte e muda o scoring; `RULE_READER` só lê (o motor). Usuários em memória: `analista` (autor), `coordenador` (autor e aprovador) e `motor` (leitor). Senhas locais por variável de ambiente.
+- **`GET /v1/rule-sets/active`:** o ETag é a versão do conjunto, e o `304` lê só o número da versão (`select max(version)`). O conteúdo completo fica em cache e é refeito quando a versão muda. O status de cada regra no corpo vem do **item do conjunto**.
+- **Custo da senha:** o HTTP Basic confere a senha a cada chamada; com BCrypt de custo 10 o `304` levava ~79 ms (p50). Com custo 4 (usuários locais, senha já em texto na configuração; produção usa OIDC no ALB) o p50 caiu para ~5,7 ms.
+- **`Idempotency-Key` nos POSTs: NÃO implementado** (item do §4.4). Exige uma tabela de respostas por chave; ficou fora da fase por decisão de escopo e segue pendente.
 - O seed (V2) repete as expressões de `rules-kernel/src/test/resources/initial-rules.json`; o teste confere que as 8 compilam juntas (SC-003).
 
 ### 4.4 API
