@@ -71,7 +71,7 @@ Como sistema de pagamento, quero saber quando a transação **não** foi aceita,
 `EvaluateTransaction` (contrato 000), `ReceiveResult` (ACCEPTED, DUPLICATE, IN_FLIGHT, REJECTED, RATE_LIMITED, UNAVAILABLE).
 
 ## Critérios de sucesso
-- **SC-001:** p99 do receiver (requisição → resposta) ≤ 30 ms a 8.000 TPS, com até 2 instâncias locais.
+- **SC-001:** p99 do receiver (requisição → resposta) ≤ 30 ms a 8.000 TPS **na nuvem**, com receiver, Kafka e gerador em máquinas separadas. Localmente, a escala de referência é 300 TPS (ver `docs/resultados-carga.md`).
 - **SC-002:** 0 transações aceitas (`202 ACCEPTED`) que não estejam no tópico, num teste com o Kafka sendo derrubado durante a carga.
 - **SC-003:** 100% dos reenvios dentro de 10 min com o Redis no ar, depois da confirmação do Kafka, respondem `DUPLICATE` sem publicar; reenvios durante a publicação respondem `503 IN_FLIGHT`, nunca `DUPLICATE`.
 

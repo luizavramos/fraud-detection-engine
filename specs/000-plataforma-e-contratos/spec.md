@@ -74,7 +74,7 @@ Como candidato que precisa provar os números do case, quero um gerador de carga
 ## Critérios de sucesso
 - **SC-001:** do clone ao ambiente no ar em ≤ 5 comandos e ≤ 5 minutos.
 - **SC-002:** 100% dos contratos com schema, record Java e ao menos um exemplo válido e um inválido testados.
-- **SC-003:** o gerador sustenta 8.000 TPS por 5 minutos numa máquina de 8 vCPU.
+- **SC-003:** o gerador sustenta 8.000 TPS por 5 minutos numa máquina de 8 vCPU **(execução na nuvem; localmente a escala de referência é 300 TPS, ver `docs/resultados-carga.md`)**.
 
 ## Premissas
 - O avaliador tem Docker e JDK 21.

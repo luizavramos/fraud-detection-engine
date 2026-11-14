@@ -16,6 +16,7 @@
         <module>contracts</module>
         <module>platform-commons</module>
         <module>receiver</module>
+        <module>load-generator</module>
     </modules>
 
     <properties>

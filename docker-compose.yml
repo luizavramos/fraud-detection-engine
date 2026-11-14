@@ -188,7 +188,7 @@ services:
       RECEIVER_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       RECEIVER_REDIS_HOST: redis
       RECEIVER_REDIS_PORT: 6379
-    mem_limit: 512m
+    mem_limit: ${RECEIVER_MEM_LIMIT:-512m}   # testes de carga: RECEIVER_MEM_LIMIT=1g (ou mais)
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/actuator/health/readiness"]
       interval: 10s

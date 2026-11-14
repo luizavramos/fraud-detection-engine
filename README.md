@@ -81,17 +81,45 @@ Os demais módulos de serviço (`rule-management`, `customer-service`, `detectio
 `notification-service`, `transaction-service`) entram nas specs 001–006.
 
 ## Teste de carga
-Entra junto com o gerador de carga (spec 000, Fase 5), que foi adiado para depois do receiver (spec 001). Comando
-previsto:
+O gerador (módulo `load-generator`) envia transações sintéticas ao receiver em **modelo aberto**: cada requisição tem
+horário planejado e a latência é medida a partir dele, então uma parada do alvo aparece no p99 em vez de sumir.
+Cenários de fraude (sequestro de conta, rajada, pulverização, beneficiário em lista) e duplicatas são sorteados nas
+proporções pedidas e marcados no header `x-synthetic-scenario`. O relatório mostra o TPS alcançado, as respostas por
+status, os erros de rede por tipo, a latência (p50 a máx) e **a CPU que o próprio gerador gastou** (para saber se ele foi
+o gargalo).
 
 ```bash
-./mvnw -pl load-generator exec:java -Dexec.args="--tps 8000 --duration 60s"
+./mvnw -q -pl load-generator -am package -DskipTests
+RECEIVER_MEM_LIMIT=1g docker compose --profile app up -d --build receiver
+java -jar load-generator/target/load-generator.jar --tps 300 --duration 60s --warmup 15s
 ```
+
+Também roda com `./mvnw -pl load-generator exec:java -Dexec.args="--tps 300 --duration 60s"` (precisa de `./mvnw install -DskipTests`
+antes). Para medir, prefira o jar: sem o Maven por perto. `--help` lista todas as opções.
+
+**Escala local x nuvem.** Os 8.000 TPS (média) e 25.000 (pico) do case só se reproduzem de verdade na **nuvem**, com
+receiver, Kafka e gerador em máquinas separadas. Num notebook, tudo divide os mesmos núcleos. Medido numa máquina de
+4 núcleos físicos (8 lógicos), com receiver e Kafka no Docker e o gerador no host:
+
+| TPS | Erros | p99 |
+|---|---|---|
+| 100 a 300 | 0 | 71 a 103 ms (receiver já aquecido) |
+| 500 | 0 | 104 ms |
+| 800 | 93% | colapso (o gerador sozinho usa 3,4 núcleos) |
+
+A **escala de referência local é 300 TPS**, com folga; 500 é o teto confortável. Detalhes e ressalvas em
+[docs/resultados-carga.md](docs/resultados-carga.md).
+
+Três cuidados ao medir localmente:
+- **Aqueça** (`--warmup 15s`): o primeiro minuto de um receiver recém-iniciado tem p99 de segundos (JIT).
+- **Espere entre rodadas**: depois de uma rodada que colapsa, o Windows fica minutos com milhares de conexões em `TIME_WAIT`
+  e as rodadas seguintes falham por falta de portas (`No buffer space available`), mesmo que o receiver esteja bem.
+- **Memória do receiver**: o padrão do compose é 512 MB; para carga use `RECEIVER_MEM_LIMIT=1g`.
 
 ## Andamento das specs
 
 | Spec | Estado |
 |---|---|
-| 000 Plataforma e contratos | Fases 1–4 e fechamento prontos; gerador de carga (Fase 5) adiado |
+| 000 Plataforma e contratos | Pronta (inclui o gerador de carga, Fase 5) |
 | 001 Receiver | Fases 1 a 6 prontas (aceita, publica, duplicatas, fail-open, rate limit, métricas, readiness, painel); falta só medir o p99 com o gerador de carga (T122) |
 | 002–006 | Não iniciadas |

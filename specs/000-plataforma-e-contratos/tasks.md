@@ -31,15 +31,15 @@ Formato: `[ID] [P?] [História] Descrição — arquivo(s)`. [P] = pode rodar em
 - [x] T020 [H3] `CleanArchitectureRules` (ArchUnit) publicada como **test-jar** do `platform-commons` (os serviços a importam com `<type>test-jar</type>` e `<scope>test</scope>` **e** declaram `archunit-junit5` em scope test, porque test-jar não traz dependências transitivas), com um teste que prova que ela pega uma violação plantada. No mesmo passo, `CommonsBoundaryTest`: o código principal do commons não importa `org.springframework` nem `org.apache.kafka.streams`
 - [x] T020a [H3] **Teste de aceite** H3: app Spring Boot mínimo em `platform-commons/src/test/.../sampleapp/` (Spring Boot, Actuator e Micrometer Tracing + OTel só em escopo de teste) usando o `logback-base.xml`. Prova: log JSON com CPF mascarado (cenário 1), requisição com `traceparent` → o log tem o mesmo `traceId` (cenário 2) e `/actuator/prometheus` responde — `H3AcceptanceTest.java`
 
-## Fase 5 — Gerador de carga (H4) — **adiada**
+## Fase 5 — Gerador de carga (H4) — **concluída** (depois do receiver)
 > Executar **depois do checkpoint da Fase 3 da 001** (o receiver já aceita e publica) e **antes da T122 da 001**, que é o primeiro uso do gerador. Também é pré-requisito de T428/T429 da 004. Motivo: o gerador só pode ser validado de ponta a ponta com o receiver no ar, e adiá-lo libera mais cedo o caminho até o motor.
 
-- [ ] T020b [H4] Criar o módulo `load-generator` (depende de `contracts`) com teste "smoke" e declarado em `<modules>`
-- [ ] T021 [H4] **Testes** do controle de taxa (token bucket), do sorteio de cenários (proporções ±1%) e da medição em modelo aberto: com um alvo simulado que trava 1 s, a latência registrada inclui o atraso de fila das requisições planejadas nesse intervalo (sem *coordinated omission*) — `load-generator/src/test/...`
-- [ ] T022 [H4] Gerador de transações sintéticas, com cenários de fraude: sequestro de conta, rajada, pulverização e beneficiário em lista — `load-generator/src/main/.../scenarios/`
-- [ ] T023 [H4] Cliente HTTP com virtual threads, controle de taxa, duplicatas e header `x-synthetic-scenario` — `load-generator/src/main/.../LoadRunner.java`
-- [ ] T024 [H4] Relatório final: TPS alcançado, respostas por status, latência HTTP p50/p99 (HdrHistogram, medida a partir do horário planejado de cada requisição) — `load-generator/src/main/.../Report.java`
-- [ ] T025 [H4] CLI (`--tps`, `--duration`, `--fraud-ratio`, `--duplicate-ratio`, `--target`) e execução com `./mvnw -pl load-generator exec:java -Dexec.args="--tps 8000 --duration 60s"`
+- [x] T020b [H4] Criar o módulo `load-generator` (depende de `contracts`) com teste "smoke" e declarado em `<modules>`
+- [x] T021 [H4] **Testes** do controle de taxa (token bucket), do sorteio de cenários (proporções ±1%) e da medição em modelo aberto: com um alvo simulado que trava 1 s, a latência registrada inclui o atraso de fila das requisições planejadas nesse intervalo (sem *coordinated omission*) — `load-generator/src/test/...`
+- [x] T022 [H4] Gerador de transações sintéticas, com cenários de fraude: sequestro de conta, rajada, pulverização e beneficiário em lista — `load-generator/src/main/.../scenarios/`
+- [x] T023 [H4] Cliente HTTP com virtual threads, controle de taxa, duplicatas e header `x-synthetic-scenario` — `load-generator/src/main/.../LoadRunner.java`
+- [x] T024 [H4] Relatório final: TPS alcançado, respostas por status, latência HTTP p50/p99 (HdrHistogram, medida a partir do horário planejado de cada requisição) — `load-generator/src/main/.../Report.java`
+- [x] T025 [H4] CLI (`--tps`, `--duration`, `--fraud-ratio`, `--duplicate-ratio`, `--target`) e execução com `./mvnw -pl load-generator exec:java -Dexec.args="--tps 8000 --duration 60s"`
 
 ## Fase 6 — Fechamento
 - [x] T026 Completar o `README.md` (subir e testar) e conferir o SC-001 do zero numa pasta limpa. A seção "carga" do README entra junto com a Fase 5 (T025)
