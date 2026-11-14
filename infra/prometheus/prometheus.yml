@@ -9,24 +9,21 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # Serviços Spring Boot: /actuator/prometheus
-  - job_name: spring-services
+  # Todos os serviços expõem /actuator/prometheus (constituição VII): os Spring Boot pelo Actuator e os apps
+  # Kafka Streams (customer-service, detection-engine, transaction-service) pelo MiniHttpServer da platform-streams,
+  # que responde no mesmo caminho.
+  - job_name: services
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ["receiver:8081"]
         labels: { service: receiver }
       - targets: ["rule-management:8082"]
         labels: { service: rule-management }
-      - targets: ["notification-service:8085"]
-        labels: { service: notification-service }
-
-  # Apps Kafka Streams (MiniHttpServer da platform-streams): /metrics
-  - job_name: streams-services
-    metrics_path: /metrics
-    static_configs:
       - targets: ["customer-service:8083"]
         labels: { service: customer-service }
       - targets: ["detection-engine:8084"]
         labels: { service: detection-engine }
+      - targets: ["notification-service:8085"]
+        labels: { service: notification-service }
       - targets: ["transaction-service:8086"]
         labels: { service: transaction-service }

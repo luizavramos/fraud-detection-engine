@@ -21,7 +21,7 @@ Não tem banco próprio: o estado do join fica no RocksDB do Kafka Streams.
 | Runtime | Java 21, Kafka Streams, `processing.guarantee=exactly_once_v2` |
 | Entrada | `cdc.bank.customers`, `cdc.bank.customer_devices` (Debezium, `ExtractNewRecordState` *desabilitado*: o serviço trata `op` e `after`) |
 | Saída | `customer-profile.v1` (compact) |
-| HTTP | `StreamsAppBootstrap` + `MiniHttpServer` do módulo `platform-streams` (criado aqui, reutilizado no 004 e no 006): `/health/live`, `/health/ready`, `/metrics` |
+| HTTP | `StreamsAppBootstrap` + `MiniHttpServer` do módulo `platform-streams` (criado aqui, reutilizado no 004 e no 006): `/actuator/health/liveness`, `/actuator/health/readiness` e `/actuator/prometheus`, os mesmos caminhos dos serviços Spring (constituição VII) |
 | Porta | 8083 |
 
 ## 3. Tabelas do banco legado (definidas em 000, `infra/bank-db/init.sql`, schema Postgres `bank`)
@@ -44,6 +44,13 @@ cdc.bank.customer_devices ──► map(→ DeviceRow) ──► groupBy(account
                                             toStream ──► customer-profile.v1
 ```
 
+
+## 4A. Decisões (revisão antes da implementação)
+- **`updatedAt` é a hora do evento do CDC, não o relógio do serviço.** É o maior `ts_ms` entre o evento do cliente e o do dispositivo que formaram o perfil. Assim a projeção é determinística (constituição III): reprocessar um evento, ou reconstruir tudo (H4), gera exatamente o mesmo perfil, e a compactação do tópico não muda nada. O `ProfileProjector` não recebe `Clock`; `CustomerRow` e `KnownDevices` carregam o instante do último evento.
+- **Mesmos caminhos de saúde e métricas dos serviços Spring** (constituição VII): `/actuator/health/liveness`, `/actuator/health/readiness` e `/actuator/prometheus`. O Prometheus usa um único job (`services`) para os seis serviços.
+- **Co-particionamento:** `customer-profile.v1` tem a mesma quantidade de partições de `transaction-commands.v1` (6 local, 48 produção) e a chave é o `accountId` como `String` UTF-8. O `to()` do Kafka Streams usa o particionador padrão (murmur2 dos bytes da chave), o mesmo do produtor do receiver; sem isso o `KTable` do motor não casaria com o fluxo de comandos.
+- **Chave dos dispositivos:** a chave do Debezium em `cdc.bank.customer_devices` é composta (`account_token`, `device_hash`); a topologia reparticiona por `account_token` antes do `groupBy`.
+
 ## 5. Clean Architecture
 ```
 customer-service/src/main/java/br/com/motorfraude/customer/
@@ -51,13 +58,13 @@ customer-service/src/main/java/br/com/motorfraude/customer/
 │   ├── CustomerRow.java          # só os campos permitidos (sem dado pessoal)
 │   ├── DeviceRow.java
 │   ├── KnownDevices.java         # agregado limitado a 10, ordenado por first_seen_at
-│   └── ProfileProjector.java     # função pura: (CustomerRow, KnownDevices, Clock) → CustomerProfile
+│   └── ProfileProjector.java     # função pura e determinística: (CustomerRow, KnownDevices) → CustomerProfile; updatedAt = hora do evento do CDC
 ├── application/
 │   └── ProjectCustomerProfileUseCase.java   # orquestra o projetor; usado pela topologia
 ├── adapters/
-│   ├── in/cdc/DebeziumCustomerMapper.java   # JSON Debezium → CustomerRow; descarta colunas não permitidas
-│   ├── in/cdc/DebeziumDeviceMapper.java
-│   └── out/kafka/ProfileSerde.java
+│   ├── controller/cdc/DebeziumCustomerMapper.java   # JSON Debezium → CustomerRow; descarta colunas não permitidas
+│   ├── controller/cdc/DebeziumDeviceMapper.java
+│   └── gateway/kafka/ProfileSerde.java
 └── infrastructure/
     ├── CustomerServiceApp.java   # main, monta a topologia, sobe o MiniHttpServer
     └── TopologyFactory.java

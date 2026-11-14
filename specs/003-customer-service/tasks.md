@@ -3,7 +3,7 @@
 Base de caminhos: `customer-service/src/{main,test}/java/br/com/motorfraude/customer/`
 
 ## Fase 1 — Setup (inclui a base para apps Kafka Streams)
-- [ ] T301 Criar o módulo `platform-streams` (depende de `platform-commons`, kafka-streams e micrometer-prometheus; pacote `br.com.motorfraude.platform.streams`) com `StreamsAppBootstrap` (configuração EOS, static membership, shutdown limpo, binding de métricas do Kafka Streams no Micrometer) e `MiniHttpServer` (`/health/live`, `/health/ready`, `/metrics`; usa o servidor HTTP do JDK, sem Spring), com testes — **reutilizado pelo 004 e pelo 006** (000 plan §4 e §6)
+- [x] T301 Criar o módulo `platform-streams` (depende de `platform-commons`, kafka-streams e micrometer-prometheus; pacote `br.com.motorfraude.platform.streams`) com `StreamsAppBootstrap` (configuração EOS, static membership, shutdown limpo, binding de métricas do Kafka Streams no Micrometer) e `MiniHttpServer` (`/actuator/health/liveness`, `/actuator/health/readiness` e `/actuator/prometheus`, os caminhos da constituição VII; usa o servidor HTTP do JDK, sem Spring), com testes — **reutilizado pelo 004 e pelo 006** (000 plan §4 e §6)
 - [ ] T302 Criar o módulo `customer-service` (depende de `contracts`, `platform-commons` e `platform-streams`) + teste ArchUnit
 - [ ] T303 [P] Registrar os conectores Debezium para `customers` e `customer_devices` em `infra/connect/register-connectors.sh` (publicação `dbz_customers`, slot próprio, `topic.prefix=cdc`, JSON sem schema — 000 plan §5.1) e adicionar o serviço ao compose (porta 8083)
 

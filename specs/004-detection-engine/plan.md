@@ -20,7 +20,7 @@ Decisões de referência: ADR-2 (Kafka Streams), ADR-3 (perfil local), ADR-7 (id
 | Membership | `group.instance.id=${HOSTNAME}` (static membership), `num.standby.replicas=1` em prod (0 local) |
 | Estado | RocksDB; em produção, volume EBS gp3 |
 | Regras | `rules-kernel` (002) + `KafkaRuleSetProvider` (consome `rule-sets.v1`) |
-| HTTP | `MiniHttpServer` do módulo `platform-streams` (003/T301): `/health/live`, `/health/ready`, `/metrics` |
+| HTTP | `MiniHttpServer` do módulo `platform-streams` (003/T301): `/actuator/health/liveness`, `/actuator/health/readiness` e `/actuator/prometheus`, os mesmos caminhos dos serviços Spring (constituição VII) |
 | Porta | 8084 |
 
 ## 3. Topologia

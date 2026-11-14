@@ -49,7 +49,7 @@ Como SRE, quero reconstruir todos os perfis a partir do banco, para recuperar de
 
 ## Requisitos funcionais
 - **FR-001:** DEVE consumir `cdc.bank.customers` e `cdc.bank.customer_devices` (formato Debezium com `after`/`before`/`op`).
-- **FR-002:** DEVE calcular `CustomerProfile{accountId, segment, accountOpenedAt, lastCredentialChangeAt, knownDeviceHashes[≤10], updatedAt}`.
+- **FR-002:** DEVE calcular `CustomerProfile{accountId, segment, accountOpenedAt, lastCredentialChangeAt, knownDeviceHashes[≤10], updatedAt}`, com `updatedAt` = o `ts_ms` mais recente dos eventos do CDC que formaram o perfil (determinístico; não usa o relógio do serviço).
 - **FR-003:** DEVE publicar em `customer-profile.v1` com chave `accountId`, e *tombstone* na remoção.
 - **FR-004:** NÃO DEVE propagar nenhuma coluna de dado pessoal; a projeção usa lista explícita de campos permitidos.
 - **FR-005:** DEVE expor health/readiness e métricas (eventos CDC por tipo, perfis publicados, atraso entre `ts_ms` do CDC e a publicação).
