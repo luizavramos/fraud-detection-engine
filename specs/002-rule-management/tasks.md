@@ -10,9 +10,9 @@ Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/
 ## Fase 2 — `rules-kernel` (bloqueia 004)
 - [x] T204 **Testes** de compilação: feature desconhecida, tipo errado, nós ou profundidade acima do limite, expressão válida — `rules-kernel/src/test/.../RuleCompilerTest.java`
 - [x] T205 Implementar `FeatureCatalog` (declarações CEL do plan §3.1), a função `max(int,int)` e o `RuleCompiler`
-- [ ] T206 **Testes** de avaliação: dispara e não dispara, override PJ, SHADOW não soma, erro de regra conta como não disparada, severidade pelas faixas — `CompiledRuleSetTest.java`
-- [ ] T207 Implementar `CompiledRuleSet.evaluate` e `EvaluationContext` (montado a partir de mapas tipados)
-- [ ] T208 **Testes** das 8 regras iniciais (plan §5): um caso que dispara e um que não dispara para cada — `InitialRulesTest.java`, com as expressões em `src/test/resources/initial-rules.json`
+- [x] T206 **Testes** de avaliação: dispara e não dispara, override PJ, SHADOW não soma, erro de regra conta como não disparada, severidade pelas faixas — `CompiledRuleSetTest.java`
+- [x] T207 Implementar `CompiledRuleSet.evaluate` e `EvaluationContext` (montado a partir de mapas tipados)
+- [x] T208 **Testes** das 8 regras iniciais (plan §5): um caso que dispara e um que não dispara para cada — `InitialRulesTest.java`, com as expressões em `src/test/resources/initial-rules.json`
 
 **Checkpoint:** o kernel está pronto e o motor (004) já pode usá-lo com conjuntos de teste em memória.
 
