@@ -88,7 +88,7 @@ public final class EvaluateTransactionUseCase {
 ```
 O `EvaluateProcessor` (adapter) converte o registro em `TransactionCommand`, lê `receivedAt` do header, chama o caso de uso e encaminha `Outcome` para os dois sinks. As portas de store são implementadas por adapters que envolvem os state stores do `ProcessorContext`.
 
-## 6. Regras por polling (`adapters/out/rules/HttpRuleSetProvider`)
+## 6. Regras por polling (`adapters/gateway/rules/HttpRuleSetProvider`)
 - **Agendamento:** `ScheduledExecutorService` a cada `RULES_POLL_INTERVAL` (padrão 30 s).
 - **Requisição:** `GET {RULES_URL}/v1/rule-sets/active` com `If-None-Match`, timeout de 2 s.
 - **`200`:** compila com `RuleCompiler.compileAll`. Se OK: `AtomicReference.set`, grava `/data/ruleset.json` (escrita atômica: arquivo temporário + rename) e atualiza o gauge de versão. Se falhar: mantém o atual e incrementa a métrica de falha.

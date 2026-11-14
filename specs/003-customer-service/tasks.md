@@ -10,7 +10,7 @@ Base de caminhos: `customer-service/src/{main,test}/java/br/com/motorfraude/cust
 ## Fase 2 — Domínio (H1, H2, H3)
 - [ ] T304 **Testes** de `KnownDevices` (limite 10, ordem por `first_seen_at`, remoção) e de `ProfileProjector` (campos, nulos) — `domain/*Test.java`
 - [ ] T305 Implementar `CustomerRow`, `DeviceRow`, `KnownDevices` e `ProfileProjector`
-- [ ] T306 **Testes** dos mappers Debezium com fixtures reais (`c`, `u`, `d`, `r`) — colunas `full_name`, `cpf`, `email` e `phone` precisam ser descartadas — `adapters/in/cdc/*Test.java`, `src/test/resources/debezium/`
+- [ ] T306 **Testes** dos mappers Debezium com fixtures reais (`c`, `u`, `d`, `r`) — colunas `full_name`, `cpf`, `email` e `phone` precisam ser descartadas — `adapters/controller/cdc/*Test.java`, `src/test/resources/debezium/`
 - [ ] T307 Implementar `DebeziumCustomerMapper` e `DebeziumDeviceMapper` com lista de campos permitidos
 
 ## Fase 3 — Topologia (MVP)

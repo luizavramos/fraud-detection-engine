@@ -9,21 +9,21 @@ Base de caminhos: `receiver/src/{main,test}/java/br/com/motorfraude/receiver/`
 ## Fase 2 — Domínio e caso de uso (sem infraestrutura)
 - [x] T103 **Teste** das invariantes de `TransactionCommand` (valor ≤ 0, moeda ≠ BRL, `occurredAt` no futuro) — `domain/TransactionCommandTest.java`
 - [x] T104 Implementar `TransactionCommand` e `ReceiveResult` (sealed) — `domain/`
-- [x] T105 Criar as portas `DuplicateGuard` (`tryReserve`/`confirm`/`release`), `CommandPublisher` e `RateLimiter`, com fakes em memória nos testes — `application/port/out/`, `test/.../fakes/`
+- [x] T105 Criar as portas `DuplicateGuard` (`tryReserve`/`confirm`/`release`), `CommandPublisher` e `RateLimiter`, com fakes em memória nos testes — `application/gateway/`, `test/.../fakes/`
 - [x] T106 **Testes** do `ReceiveTransactionUseCase`: aceito (com `confirm`), duplicata (`DONE`), em andamento (`PENDING` → `InFlight`), rate limit, Redis indisponível (fail-open, sem `confirm`), falha de publicação com `release` só quando `RESERVED` e sem `confirm` — `application/ReceiveTransactionUseCaseTest.java`
 - [x] T107 Implementar `ReceiveTransactionUseCase`. Ao concluir, **remover** `receiver/src/test/resources/archunit.properties` (relaxamento temporário da T101: as regras ArchUnit voltam a exigir classes em `domain` e `application`)
 
 ## Fase 3 — H1 + H2: entrada HTTP e publicação (MVP)
-- [x] T108 **Testes** MockMvc: 202 ACCEPTED, 400 por schema, 400 por `Idempotency-Key` divergente, 413, 401 para `X-Client-Id` ausente/desconhecido (sem criar label de métrica) — `adapters/in/rest/TransactionControllerTest.java`
+- [x] T108 **Testes** MockMvc: 202 ACCEPTED, 400 por schema, 400 por `Idempotency-Key` divergente, 413, 401 para `X-Client-Id` ausente/desconhecido (sem criar label de métrica) — `adapters/controller/TransactionControllerTest.java`
 - [x] T109 Implementar `RequestValidator` (JSON Schema) e `TransactionController` com Problem Details
-- [x] T110 **Teste de integração** com Testcontainers Kafka: o comando chega ao tópico com chave e headers corretos, e o valor passa no teste de contrato `ContractAssertions.assertProduces("evaluate-transaction.v1", …)` (000 plan §3.3) — `adapters/out/kafka/KafkaCommandPublisherIT.java`
+- [x] T110 **Teste de integração** com Testcontainers Kafka: o comando chega ao tópico com chave e headers corretos, e o valor passa no teste de contrato `ContractAssertions.assertProduces("evaluate-transaction.v1", …)` (000 plan §3.3) — `adapters/gateway/kafka/KafkaCommandPublisherIT.java`
 - [x] T111 Implementar `KafkaCommandPublisher` (`acks=all`, idempotente, `send().get(timeout)`) e `KafkaConfig`
 - [x] T112 Propagar `traceparent` e gravar `receivedAt`. O Micrometer Tracing já lê (ou gera) o `traceparent` da requisição HTTP; o publicador grava esse contexto no header Kafka com `KafkaTracePropagation` e o `receivedAt` com `ClockProvider`
 
 **Checkpoint:** o receiver aceita e publica. Já dá para demonstrar o passo 1 de ponta a ponta.
 
 ## Fase 4 — H3 + H5: duplicatas e falha do Kafka
-- [x] T113 **Teste de integração** com Testcontainers Redis: reserva grava `PENDING` com TTL 5 s; segunda chamada antes do `confirm` devolve `IN_FLIGHT`; depois do `confirm` (`DONE`, TTL 600) devolve `ALREADY_SEEN`; `PENDING` expira em 5 s e a reserva volta a funcionar; timeout devolve `UNAVAILABLE` — `adapters/out/redis/RedisDuplicateGuardIT.java`
+- [x] T113 **Teste de integração** com Testcontainers Redis: reserva grava `PENDING` com TTL 5 s; segunda chamada antes do `confirm` devolve `IN_FLIGHT`; depois do `confirm` (`DONE`, TTL 600) devolve `ALREADY_SEEN`; `PENDING` expira em 5 s e a reserva volta a funcionar; timeout devolve `UNAVAILABLE` — `adapters/gateway/redis/RedisDuplicateGuardIT.java`
 - [x] T114 Implementar `RedisDuplicateGuard` (e **remover** o `DuplicateGuard` provisório de `TemporaryPortsConfig`) (timeout de 5 ms por comando; `SET PENDING NX EX 5` + `GET`; `confirm` com `SET DONE EX 600`; `release` com `DEL`). `PENDING` TTL > `delivery.timeout.ms`
 - [x] T115 **Teste de aceite** H3/H5: reenvio depois do ack → DUPLICATE; reenvio durante a publicação → 503 IN_FLIGHT (nunca DUPLICATE); Redis parado → fail-open; Kafka parado → 503 e retry aceito depois que o Kafka volta — `AcceptanceIT.java`
 - [x] T116 **Teste de concorrência:** 50 POSTs simultâneos com o mesmo `transactionId` → 1 publicação; os demais recebem `IN_FLIGHT` ou `DUPLICATE`, nenhum `ACCEPTED`

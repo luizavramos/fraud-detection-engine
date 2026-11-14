@@ -63,10 +63,11 @@ rule-management/src/main/java/br/com/motorfraude/rules/
 ├── application/
 │   ├── usecase/   CreateRule, CreateRuleVersion, ValidateRule, ActivateRule, ShadowRule,
 │   │              DisableRule, RollbackRuleSet, UpdateScoring, GetActiveRuleSet
-│   └── port/out/  RuleRepository, RuleSetRepository, AuditLog, RuleValidator (implementado com rules-kernel)
+│   └── gateway/   RuleRepository, RuleSetRepository, AuditLog, UnitOfWork, IdempotencyStore, RuleValidator (implementado com rules-kernel)
 ├── adapters/
-│   ├── in/rest/   RuleController, RuleSetController, ScoringController, ProblemDetails
-│   └── out/postgres/  repositórios JDBC
+│   ├── controller/  RuleController, RuleSetController, ScoringController, IdempotencyFilter, ApiRequests
+│   ├── presenter/   ApiResponses, RestExceptionHandler (Problem Details)
+│   └── gateway/     postgres/ (repositórios JDBC) e kernel/ (validador sobre o rules-kernel)
 └── infrastructure/ config de segurança, Flyway, métricas
 ```
 

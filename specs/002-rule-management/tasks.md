@@ -29,7 +29,7 @@ Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/
 - [x] T216 Implementar os repositórios JDBC
 
 ## Fase 5 — API (H1–H4)
-- [x] T217 **Testes** REST: 201/422 na criação, `:validate` com casos de teste, `:activate`/`:disable`/`:rollback`, `PUT /scoring`, 404, papéis — `adapters/in/rest/*Test.java`
+- [x] T217 **Testes** REST: 201/422 na criação, `:validate` com casos de teste, `:activate`/`:disable`/`:rollback`, `PUT /scoring`, 404, papéis — `adapters/controller/*Test.java`
 - [x] T218 Implementar os controllers + Problem Details + Spring Security (usuários em memória `analista`, `coordenador`)
 - [x] T219 **Teste** de `GET /v1/rule-sets/active`: 200 com `ETag`; 304 com `If-None-Match`; o corpo valida contra `rule-set.v1`
 - [x] T220 Implementar o `RuleSetController` com cache por versão

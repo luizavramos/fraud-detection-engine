@@ -30,16 +30,23 @@ receiver/src/main/java/br/com/motorfraude/receiver/
 │   └── ReceiveResult.java             # sealed: Accepted, Duplicate, InFlight, Rejected, RateLimited, Unavailable
 ├── application/
 │   ├── ReceiveTransactionUseCase.java
-│   └── port/out/
+│   └── gateway/                       # o que o caso de uso precisa do mundo de fora (interfaces); quem implementa está em adapters/gateway
 │       ├── DuplicateGuard.java        # Reservation tryReserve(txId) [RESERVED|ALREADY_SEEN|IN_FLIGHT|UNAVAILABLE]; void confirm(txId); void release(txId)
 │       ├── CommandPublisher.java      # void publish(TransactionCommand, TraceContext) throws PublishFailed
 │       └── RateLimiter.java           # boolean tryAcquire(String clientId)
 ├── adapters/
-│   ├── in/rest/TransactionController.java     # HTTP ↔ caso de uso; Problem Details
-│   ├── in/rest/RequestValidator.java          # JSON Schema
-│   ├── out/redis/RedisDuplicateGuard.java     # SET PENDING NX EX 5 → GET; confirm = SET DONE EX 600; timeout → UNAVAILABLE
-│   ├── out/kafka/KafkaCommandPublisher.java   # send().get(timeout)
-│   └── out/ratelimit/Bucket4jRateLimiter.java
+│   ├── controller/                    # entrada HTTP
+│   │   ├── TransactionController.java     # coordena a ordem das checagens (origem → limite → corpo → contrato → caso de uso)
+│   │   ├── RequestBodyReader.java         # lê o corpo até 16 KB
+│   │   ├── TransactionRequestParser.java  # JSON, contrato, Idempotency-Key e invariantes → comando de domínio
+│   │   └── RequestValidator.java          # JSON Schema
+│   ├── presenter/                     # saída HTTP
+│   │   ├── TransactionPresenter.java      # desfecho → status, corpo e Retry-After
+│   │   └── ProblemDetails.java            # RFC 9457
+│   └── gateway/                       # implementações dos gateways
+│       ├── redis/RedisDuplicateGuard.java     # SET PENDING NX EX 5 → GET; confirm = SET DONE EX 600; timeout → UNAVAILABLE
+│       ├── kafka/KafkaCommandPublisher.java   # send().get(timeout)
+│       └── ratelimit/Bucket4jRateLimiter.java
 └── infrastructure/
     ├── ReceiverApplication.java
     ├── config/{KafkaConfig,RedisConfig,RateLimitConfig}.java

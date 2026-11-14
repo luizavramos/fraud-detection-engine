@@ -34,7 +34,7 @@ notification-service/src/main/java/br/com/motorfraude/notification/
 │   ├── usecase/DispatchDeliveryUseCase.java  # envia uma entrega por um canal; decide SENT / retry / DLQ / reserva
 │   ├── usecase/RegisterFeedbackUseCase.java
 │   ├── usecase/ListAlertsUseCase.java
-│   └── port/out/ AlertRepository, DeliveryRepository, NotificationChannel (strategy por canal),
+│   └── gateway/ AlertRepository, DeliveryRepository, NotificationChannel (strategy por canal),
 │                 ContactDirectory, RetryScheduler, Clock
 ├── adapters/
 │   ├── in/kafka/AlertListener.java            # fraud-alerts.v1 → Register + Dispatch
