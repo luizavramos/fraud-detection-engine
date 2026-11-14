@@ -10,13 +10,13 @@ Base de caminhos: `customer-service/src/{main,test}/java/br/com/motorfraude/cust
 ## Fase 2 — Domínio (H1, H2, H3)
 - [x] T304 **Testes** de `KnownDevices` (limite 10, ordem por `first_seen_at`, remoção) e de `ProfileProjector` (campos, nulos) — `domain/*Test.java`
 - [x] T305 Implementar `CustomerRow`, `DeviceRow`, `KnownDevices` e `ProfileProjector`
-- [ ] T306 **Testes** dos mappers Debezium com fixtures reais (`c`, `u`, `d`, `r`) — colunas `full_name`, `cpf`, `email` e `phone` precisam ser descartadas — `adapters/controller/cdc/*Test.java`, `src/test/resources/debezium/`
-- [ ] T307 Implementar `DebeziumCustomerMapper` e `DebeziumDeviceMapper` com lista de campos permitidos
+- [x] T306 **Testes** dos mappers Debezium com fixtures reais (`c`, `u`, `d`, `r`) — colunas `full_name`, `cpf`, `email` e `phone` precisam ser descartadas — `adapters/controller/cdc/*Test.java`, `src/test/resources/debezium/`
+- [x] T307 Implementar `DebeziumCustomerMapper` e `DebeziumDeviceMapper` com lista de campos permitidos
 
 ## Fase 3 — Topologia (MVP)
-- [ ] T308 **Testes** com `TopologyTestDriver`: atualização → perfil; remoção → tombstone; dispositivo antes do cliente; 15 dispositivos → 10; evento repetido → mesmo perfil; todo perfil emitido passa em `ContractAssertions.assertProduces("customer-profile.v1", …)` (schema estrito: coluna de dado pessoal que vaze quebra o teste) — `TopologyFactoryTest.java`
-- [ ] T309 Implementar `TopologyFactory` (plan §4), `ProfileSerde` e `CustomerServiceApp`
-- [ ] T310 **Teste de privacidade:** gerar perfis para os 10 mil clientes sintéticos e validar contra o schema + ausência de padrões de dado pessoal — `PrivacyTest.java`
+- [x] T308 **Testes** com `TopologyTestDriver`: atualização → perfil; remoção → tombstone; dispositivo antes do cliente; 15 dispositivos → 10; evento repetido → mesmo perfil; todo perfil emitido passa em `ContractAssertions.assertProduces("customer-profile.v1", …)` (schema estrito: coluna de dado pessoal que vaze quebra o teste) — `TopologyFactoryTest.java`
+- [x] T309 Implementar `TopologyFactory` (plan §4), `ProfileSerde` e `CustomerServiceApp`
+- [x] T310 **Teste de privacidade:** gerar perfis para os 10 mil clientes sintéticos e validar contra o schema + ausência de padrões de dado pessoal — `PrivacyTest.java`
 
 **Checkpoint:** o motor (004) já pode consumir `customer-profile.v1`.
 

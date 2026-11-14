@@ -59,12 +59,10 @@ customer-service/src/main/java/br/com/motorfraude/customer/
 │   ├── DeviceRow.java
 │   ├── KnownDevices.java         # guarda os dispositivos da conta e expõe os 10 mais recentes por first_seen_at (a remoção precisa do 11º)
 │   └── ProfileProjector.java     # função pura e determinística: (CustomerRow, KnownDevices) → CustomerProfile; updatedAt = hora do evento do CDC
-├── application/
-│   └── ProjectCustomerProfileUseCase.java   # orquestra o projetor; usado pela topologia
 ├── adapters/
-│   ├── controller/cdc/DebeziumCustomerMapper.java   # JSON Debezium → CustomerRow; descarta colunas não permitidas
+│   ├── controller/cdc/DebeziumCustomerMapper.java   # JSON Debezium → CustomerRow; descarta colunas não permitidas (no `d`, o `before` só tem a chave: vira tombstone)
 │   ├── controller/cdc/DebeziumDeviceMapper.java
-│   └── gateway/kafka/ProfileSerde.java
+│   └── gateway/kafka/ProfileSerde.java, StateSerdes.java, JsonSerde.java
 └── infrastructure/
     ├── CustomerServiceApp.java   # main, monta a topologia, sobe o MiniHttpServer
     └── TopologyFactory.java
@@ -91,3 +89,9 @@ customer-service/src/main/java/br/com/motorfraude/customer/
 ## 8. Riscos
 - **Debezium no ambiente local:** mesmo risco e mesmo plano B da 000 (CDC simulado).
 - **Mudança de schema na base do banco:** o mapper falha de forma explícita (métrica + log), sem publicar um perfil incompleto.
+
+## 4B. Decisões da implementação (Fase 3)
+- **Sem `ProjectCustomerProfileUseCase`:** ele só repassaria a chamada ao `ProfileProjector`; a topologia (infraestrutura) chama o domínio direto. A camada `application` fica vazia até a Fase 4 (porta das métricas), por isso o `archunit.properties` segue com `failOnEmptyShould=false`.
+- **Remoção no CDC:** com a identidade de réplica padrão do Postgres, o `before` de um `d` só traz a chave primária (as demais colunas vêm vazias ou em 1970, fixture real). Os mapeadores não leem o `before`: o `d` vira valor nulo na tabela e a chave do registro dá a conta.
+- **Dispositivos:** `KTable` por (conta|dispositivo) → `groupBy(conta)` → `aggregate` com somador e subtrator (`KnownDevices.add/remove`). O instante do evento do conjunto é derivado dos dispositivos presentes, porque o subtrator não recebe o horário da remoção; assim reconstruir tudo dá o mesmo resultado.
+- **Teste de privacidade em dois níveis:** 10 mil clientes pelos mapeadores e pelo projetor (rápido) e 300 pela topologia completa com o estado inspecionado; o `TopologyTestDriver` custa ~14 ms por evento no Windows, o que tornaria 10 mil pela topologia um teste de vários minutos.
