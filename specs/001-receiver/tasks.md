@@ -7,11 +7,11 @@ Base de caminhos: `receiver/src/{main,test}/java/br/com/motorfraude/receiver/`
 - [x] T102 [P] Adicionar o serviço `receiver` ao `docker-compose.yml` (porta 8081, depende de kafka e redis) e ao `prometheus.yml` — o alvo já estava no `prometheus.yml` (000); o serviço entra no perfil `app` do compose (`docker compose --profile app up -d --build receiver`, depois de `./mvnw -pl receiver -am package -DskipTests`), para o `docker compose up -d` da infraestrutura continuar sem build (SC-001 da 000)
 
 ## Fase 2 — Domínio e caso de uso (sem infraestrutura)
-- [ ] T103 **Teste** das invariantes de `TransactionCommand` (valor ≤ 0, moeda ≠ BRL, `occurredAt` no futuro) — `domain/TransactionCommandTest.java`
-- [ ] T104 Implementar `TransactionCommand` e `ReceiveResult` (sealed) — `domain/`
-- [ ] T105 Criar as portas `DuplicateGuard` (`tryReserve`/`confirm`/`release`), `CommandPublisher` e `RateLimiter`, com fakes em memória nos testes — `application/port/out/`, `test/.../fakes/`
-- [ ] T106 **Testes** do `ReceiveTransactionUseCase`: aceito (com `confirm`), duplicata (`DONE`), em andamento (`PENDING` → `InFlight`), rate limit, Redis indisponível (fail-open, sem `confirm`), falha de publicação com `release` só quando `RESERVED` e sem `confirm` — `application/ReceiveTransactionUseCaseTest.java`
-- [ ] T107 Implementar `ReceiveTransactionUseCase`. Ao concluir, **remover** `receiver/src/test/resources/archunit.properties` (relaxamento temporário da T101: as regras ArchUnit voltam a exigir classes em `domain` e `application`)
+- [x] T103 **Teste** das invariantes de `TransactionCommand` (valor ≤ 0, moeda ≠ BRL, `occurredAt` no futuro) — `domain/TransactionCommandTest.java`
+- [x] T104 Implementar `TransactionCommand` e `ReceiveResult` (sealed) — `domain/`
+- [x] T105 Criar as portas `DuplicateGuard` (`tryReserve`/`confirm`/`release`), `CommandPublisher` e `RateLimiter`, com fakes em memória nos testes — `application/port/out/`, `test/.../fakes/`
+- [x] T106 **Testes** do `ReceiveTransactionUseCase`: aceito (com `confirm`), duplicata (`DONE`), em andamento (`PENDING` → `InFlight`), rate limit, Redis indisponível (fail-open, sem `confirm`), falha de publicação com `release` só quando `RESERVED` e sem `confirm` — `application/ReceiveTransactionUseCaseTest.java`
+- [x] T107 Implementar `ReceiveTransactionUseCase`. Ao concluir, **remover** `receiver/src/test/resources/archunit.properties` (relaxamento temporário da T101: as regras ArchUnit voltam a exigir classes em `domain` e `application`)
 
 ## Fase 3 — H1 + H2: entrada HTTP e publicação (MVP)
 - [ ] T108 **Testes** MockMvc: 202 ACCEPTED, 400 por schema, 400 por `Idempotency-Key` divergente, 413, 401 para `X-Client-Id` ausente/desconhecido (sem criar label de métrica) — `adapters/in/rest/TransactionControllerTest.java`

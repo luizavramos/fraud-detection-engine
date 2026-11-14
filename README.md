@@ -93,5 +93,5 @@ previsto:
 | Spec | Estado |
 |---|---|
 | 000 Plataforma e contratos | Fases 1–4 e fechamento prontos; gerador de carga (Fase 5) adiado |
-| 001 Receiver | Em andamento: Fase 1 (módulo e compose) pronta |
+| 001 Receiver | Em andamento: Fases 1 e 2 prontas (módulo, compose, domínio e caso de uso) |
 | 002–006 | Não iniciadas |
