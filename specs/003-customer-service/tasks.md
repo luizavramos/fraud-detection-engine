@@ -8,8 +8,8 @@ Base de caminhos: `customer-service/src/{main,test}/java/br/com/motorfraude/cust
 - [x] T303 [P] Registrar os conectores Debezium para `customers` e `customer_devices` em `infra/connect/register-connectors.sh` (publicação `dbz_customers`, slot próprio, `topic.prefix=cdc`, JSON sem schema — 000 plan §5.1) e adicionar o serviço ao compose (porta 8083)
 
 ## Fase 2 — Domínio (H1, H2, H3)
-- [ ] T304 **Testes** de `KnownDevices` (limite 10, ordem por `first_seen_at`, remoção) e de `ProfileProjector` (campos, nulos) — `domain/*Test.java`
-- [ ] T305 Implementar `CustomerRow`, `DeviceRow`, `KnownDevices` e `ProfileProjector`
+- [x] T304 **Testes** de `KnownDevices` (limite 10, ordem por `first_seen_at`, remoção) e de `ProfileProjector` (campos, nulos) — `domain/*Test.java`
+- [x] T305 Implementar `CustomerRow`, `DeviceRow`, `KnownDevices` e `ProfileProjector`
 - [ ] T306 **Testes** dos mappers Debezium com fixtures reais (`c`, `u`, `d`, `r`) — colunas `full_name`, `cpf`, `email` e `phone` precisam ser descartadas — `adapters/controller/cdc/*Test.java`, `src/test/resources/debezium/`
 - [ ] T307 Implementar `DebeziumCustomerMapper` e `DebeziumDeviceMapper` com lista de campos permitidos
 

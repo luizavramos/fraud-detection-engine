@@ -57,7 +57,7 @@ customer-service/src/main/java/br/com/motorfraude/customer/
 ├── domain/
 │   ├── CustomerRow.java          # só os campos permitidos (sem dado pessoal)
 │   ├── DeviceRow.java
-│   ├── KnownDevices.java         # agregado limitado a 10, ordenado por first_seen_at
+│   ├── KnownDevices.java         # guarda os dispositivos da conta e expõe os 10 mais recentes por first_seen_at (a remoção precisa do 11º)
 │   └── ProfileProjector.java     # função pura e determinística: (CustomerRow, KnownDevices) → CustomerProfile; updatedAt = hora do evento do CDC
 ├── application/
 │   └── ProjectCustomerProfileUseCase.java   # orquestra o projetor; usado pela topologia
