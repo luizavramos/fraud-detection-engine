@@ -11,7 +11,7 @@ Motor de detecção de fraude em tempo real: recebe transações de serviços in
 - **JDK 21**
 - **Docker** com Docker Compose, com pelo menos **4 GB de memória** liberados para o Docker
 
-Não é preciso instalar Maven: o projeto usa o Maven Wrapper (`./mvnw`).
+Não é preciso instalar Maven: cada repositório de código traz o Maven Wrapper (`./mvnw`).
 
 ## Subir o ambiente (4 comandos)
 
@@ -44,7 +44,8 @@ Alguma porta ocupada? Copie `.env.example` para `.env` e mude a porta do host.
 Ficam no perfil `app` do compose, para o `up -d` acima continuar sem build. Exemplo, o receiver (porta 8081):
 
 ```bash
-./mvnw -pl receiver -am package -DskipTests
+# com o repositório receiver clonado ao lado (../receiver)
+(cd ../receiver && ./mvnw -DskipTests package)
 docker compose --profile app up -d --build receiver
 ```
 
@@ -55,33 +56,28 @@ docker compose down -v     # para e apaga os volumes (próximo start do zero)
 ```
 
 ## Testar
+Cada repositório de código tem o seu `./mvnw verify` (unitários `*Test`, integração `*IT`, Enforcer). No Windows, use `mvnw.cmd`;
+se aparecer `JAVA_HOME not found`, aponte para o JDK 21 (PowerShell: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.12.1"`).
+Os testes de integração usam Testcontainers e precisam do Docker.
 
-```bash
-./mvnw verify
-```
+## Estrutura: repositórios
+O projeto segue uma estrutura de microsserviços, **um repositório por serviço e por biblioteca**. Este repositório (`motor-fraude`) guarda a visão geral: specs, documentação, compose e infraestrutura local. Clone todos lado a lado:
 
-No Windows, use `mvnw.cmd verify`. Se aparecer `JAVA_HOME not found`, aponte para o JDK 21 (por exemplo, no
-PowerShell: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.12.1"`).
-
-`verify` roda os testes unitários (`*Test`, Surefire) e de integração (`*IT`, Failsafe) de todos os módulos, e o
-Maven Enforcer, que barra Java < 21 e Jackson 2 (o projeto usa Jackson 3).
-
-## Estrutura
-
-| Pasta | O que é |
+| Repositório | O que é |
 |---|---|
-| `contracts/` | JSON Schemas versionados (estritos), records Java, `JsonCodec` e `ContractAssertions` (teste de contrato dos produtores) |
-| `platform-commons/` | Base comum sem Spring e sem Kafka Streams: logs JSON com dados pessoais mascarados, `traceparent` em headers Kafka, `Clock` e regras ArchUnit da Clean Architecture |
-| `receiver/` | Porta de entrada HTTP (spec 001): valida, limita, barra retries e publica no Kafka |
-| `infra/` | Compose: criação de tópicos, `init.sql` dos bancos, Prometheus, Grafana e o `smoke.sh` |
-| `specs/` | Constituição do projeto e specs 000–006, com plano e tarefas de cada uma |
-| `docs/` | Registro do uso de IA |
+| `motor-fraude` (este) | Specs 000–006, ADRs, `docs/`, `docker-compose.yml` e `infra/` (tópicos, bancos, Prometheus, Grafana, `smoke.sh`) |
+| `motor-fraude-parent` | Pom pai: versões, plugins e regras do Enforcer |
+| `contracts` | JSON Schemas versionados (estritos), records Java, `JsonCodec` e `ContractAssertions` |
+| `platform-commons` | Base comum sem Spring: logs JSON com dados pessoais mascarados, `traceparent`, `Clock` e regras ArchUnit |
+| `receiver` | Porta de entrada HTTP (spec 001) |
+| `load-generator` | Gerador de carga (spec 000, Fase 5) |
 
-Os demais módulos de serviço (`rule-management`, `customer-service`, `detection-engine`,
-`notification-service`, `transaction-service`) entram nas specs 001–006.
+Os demais serviços (`rule-management`, `rules-kernel`, `detection-engine` etc.) ganham um repositório cada, quando a spec for implementada.
+
+**Código compartilhado.** `motor-fraude-parent`, `contracts` e `platform-commons` são artefatos Maven versionados (`0.1.0`), publicados no GitHub Packages (repositórios privados; token em `~/.m2/settings.xml`, ver o README do pom pai). Sem registry, instale localmente, nessa ordem: `./mvnw install` em `motor-fraude-parent`, `contracts` e `platform-commons`.
 
 ## Teste de carga
-O gerador (módulo `load-generator`) envia transações sintéticas ao receiver em **modelo aberto**: cada requisição tem
+O gerador (repositório `load-generator`) envia transações sintéticas ao receiver em **modelo aberto**: cada requisição tem
 horário planejado e a latência é medida a partir dele, então uma parada do alvo aparece no p99 em vez de sumir.
 Cenários de fraude (sequestro de conta, rajada, pulverização, beneficiário em lista) e duplicatas são sorteados nas
 proporções pedidas e marcados no header `x-synthetic-scenario`. O relatório mostra o TPS alcançado, as respostas por
@@ -89,13 +85,13 @@ status, os erros de rede por tipo, a latência (p50 a máx) e **a CPU que o pró
 o gargalo).
 
 ```bash
-./mvnw -q -pl load-generator -am package -DskipTests
+(cd ../load-generator && ./mvnw -q package -DskipTests)
+(cd ../receiver && ./mvnw -q package -DskipTests)
 RECEIVER_MEM_LIMIT=1g docker compose --profile app up -d --build receiver
-java -jar load-generator/target/load-generator.jar --tps 300 --duration 60s --warmup 15s
+java -jar ../load-generator/target/load-generator.jar --tps 300 --duration 60s --warmup 15s
 ```
 
-Também roda com `./mvnw -pl load-generator exec:java -Dexec.args="--tps 300 --duration 60s"` (precisa de `./mvnw install -DskipTests`
-antes). Para medir, prefira o jar: sem o Maven por perto. `--help` lista todas as opções.
+Também roda com `./mvnw exec:java -Dexec.args="--tps 300 --duration 60s"` na pasta do `load-generator`. Para medir, prefira o jar: sem o Maven por perto. `--help` lista todas as opções.
 
 **Escala local x nuvem.** Os 8.000 TPS (média) e 25.000 (pico) do case só se reproduzem de verdade na **nuvem**, com
 receiver, Kafka e gerador em máquinas separadas. Num notebook, tudo divide os mesmos núcleos. Medido numa máquina de

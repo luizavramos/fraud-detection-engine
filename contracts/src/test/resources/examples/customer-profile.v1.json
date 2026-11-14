@@ -1,8 +1,0 @@
-{
-  "accountId": "acc_tok_00000001",
-  "segment": "PF",
-  "accountOpenedAt": "2023-05-02T12:00:00Z",
-  "lastCredentialChangeAt": "2026-11-10T09:15:00Z",
-  "knownDeviceHashes": ["dev_0f3a9c1d5b7e2a64", "dev_aa11bb22cc33dd44"],
-  "updatedAt": "2026-11-13T21:00:00Z"
-}

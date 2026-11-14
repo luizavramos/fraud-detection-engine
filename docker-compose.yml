@@ -169,11 +169,11 @@ services:
 
 
   # Serviços da aplicação: perfil "app", para o `docker compose up -d` da infraestrutura continuar sem build.
-  # Antes: ./mvnw -pl receiver -am package -DskipTests
+  # Antes, no repositório receiver ao lado: ./mvnw -DskipTests package
   # Subir: docker compose --profile app up -d --build receiver
   receiver:
     profiles: ["app"]
-    build: ./receiver
+    build: ${RECEIVER_CONTEXT:-../receiver}
     depends_on:
       kafka:
         condition: service_healthy

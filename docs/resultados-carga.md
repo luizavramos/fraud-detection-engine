@@ -45,7 +45,7 @@ na conta. O receiver só responde `202` depois do ack do Kafka, então o p99 inc
 
 ## Como reproduzir
 ```bash
-./mvnw -q -pl load-generator -am package -DskipTests
+(cd ../load-generator && ./mvnw -q package -DskipTests) && (cd ../receiver && ./mvnw -q package -DskipTests)
 RECEIVER_MEM_LIMIT=1g docker compose --profile app up -d --build receiver
-java -jar load-generator/target/load-generator.jar --tps 300 --duration 20s --warmup 10s --seed 1
+java -jar ../load-generator/target/load-generator.jar --tps 300 --duration 20s --warmup 10s --seed 1
 ```
