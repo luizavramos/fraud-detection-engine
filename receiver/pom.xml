@@ -45,6 +45,11 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
         </dependency>
+        <!-- Redis: Lettuce direto (sem Spring Data), para controlar timeout de 5 ms e fail-open -->
+        <dependency>
+            <groupId>io.lettuce</groupId>
+            <artifactId>lettuce-core</artifactId>
+        </dependency>
 
         <!-- Testes -->
         <dependency>

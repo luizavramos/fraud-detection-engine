@@ -93,5 +93,5 @@ previsto:
 | Spec | Estado |
 |---|---|
 | 000 Plataforma e contratos | Fases 1–4 e fechamento prontos; gerador de carga (Fase 5) adiado |
-| 001 Receiver | Em andamento: Fases 1 a 3 prontas (aceita e publica no Kafka); faltam duplicatas no Redis, rate limit e observabilidade |
+| 001 Receiver | Em andamento: Fases 1 a 4 prontas (aceita, publica, barra duplicatas, fail-open); faltam rate limit e observabilidade |
 | 002–006 | Não iniciadas |

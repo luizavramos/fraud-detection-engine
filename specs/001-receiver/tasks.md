@@ -23,10 +23,10 @@ Base de caminhos: `receiver/src/{main,test}/java/br/com/motorfraude/receiver/`
 **Checkpoint:** o receiver aceita e publica. Já dá para demonstrar o passo 1 de ponta a ponta.
 
 ## Fase 4 — H3 + H5: duplicatas e falha do Kafka
-- [ ] T113 **Teste de integração** com Testcontainers Redis: reserva grava `PENDING` com TTL 5 s; segunda chamada antes do `confirm` devolve `IN_FLIGHT`; depois do `confirm` (`DONE`, TTL 600) devolve `ALREADY_SEEN`; `PENDING` expira em 5 s e a reserva volta a funcionar; timeout devolve `UNAVAILABLE` — `adapters/out/redis/RedisDuplicateGuardIT.java`
-- [ ] T114 Implementar `RedisDuplicateGuard` (e **remover** o `DuplicateGuard` provisório de `TemporaryPortsConfig`) (timeout de 5 ms por comando; `SET PENDING NX EX 5` + `GET`; `confirm` com `SET DONE EX 600`; `release` com `DEL`). `PENDING` TTL > `delivery.timeout.ms`
-- [ ] T115 **Teste de aceite** H3/H5: reenvio depois do ack → DUPLICATE; reenvio durante a publicação → 503 IN_FLIGHT (nunca DUPLICATE); Redis parado → fail-open; Kafka parado → 503 e retry aceito depois que o Kafka volta — `AcceptanceIT.java`
-- [ ] T116 **Teste de concorrência:** 50 POSTs simultâneos com o mesmo `transactionId` → 1 publicação; os demais recebem `IN_FLIGHT` ou `DUPLICATE`, nenhum `ACCEPTED`
+- [x] T113 **Teste de integração** com Testcontainers Redis: reserva grava `PENDING` com TTL 5 s; segunda chamada antes do `confirm` devolve `IN_FLIGHT`; depois do `confirm` (`DONE`, TTL 600) devolve `ALREADY_SEEN`; `PENDING` expira em 5 s e a reserva volta a funcionar; timeout devolve `UNAVAILABLE` — `adapters/out/redis/RedisDuplicateGuardIT.java`
+- [x] T114 Implementar `RedisDuplicateGuard` (e **remover** o `DuplicateGuard` provisório de `TemporaryPortsConfig`) (timeout de 5 ms por comando; `SET PENDING NX EX 5` + `GET`; `confirm` com `SET DONE EX 600`; `release` com `DEL`). `PENDING` TTL > `delivery.timeout.ms`
+- [x] T115 **Teste de aceite** H3/H5: reenvio depois do ack → DUPLICATE; reenvio durante a publicação → 503 IN_FLIGHT (nunca DUPLICATE); Redis parado → fail-open; Kafka parado → 503 e retry aceito depois que o Kafka volta — `AcceptanceIT.java`
+- [x] T116 **Teste de concorrência:** 50 POSTs simultâneos com o mesmo `transactionId` → 1 publicação; os demais recebem `IN_FLIGHT` ou `DUPLICATE`, nenhum `ACCEPTED`
 
 ## Fase 5 — H4: rate limit
 - [ ] T117 **Teste** do `Bucket4jRateLimiter` (excede → false; origens isoladas) e do filtro: 429 com `Retry-After` antes de validar o corpo (corpo inválido de origem acima do limite → 429, não 400) — limite baixo (5 req/s) nos testes
