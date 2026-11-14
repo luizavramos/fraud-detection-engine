@@ -4,7 +4,7 @@ Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/
 
 ## Fase 1 — Setup e spike
 - [x] T201 Spike com cel-java: compilar `features.count5m > params.maxCount` com declarações tipadas e avaliar. Resultado em `rules-kernel/SPIKE.md`: passou; sem estimador de custo no Java, o limite é de nós e profundidade
-- [ ] T202 [P] Criar os módulos `rules-kernel` (Java puro) e `rule-management` (Spring Boot), com testes ArchUnit — **`rules-kernel` feito (repositório próprio, ArchUnit: `model` e `catalog` não conhecem o CEL); `rule-management` na Fase 3**
+- [ ] T202 [P] Criar os módulos `rules-kernel` (Java puro) e `rule-management` (Spring Boot), com testes ArchUnit — **`rules-kernel` feito (repositório próprio, ArchUnit: `model` e `catalog` não conhecem o CEL); `rule-management` criado na Fase 3 (repositório próprio, ArchUnit; Spring Boot entra nas Fases 4 e 5)**
 - [ ] T203 [P] Adicionar `rule-management` ao compose (porta 8082, depende de postgres) e ao Prometheus
 
 ## Fase 2 — `rules-kernel` (bloqueia 004)
@@ -17,11 +17,11 @@ Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/
 **Checkpoint:** o kernel está pronto e o motor (004) já pode usá-lo com conjuntos de teste em memória.
 
 ## Fase 3 — Domínio e casos de uso (H1, H2, H4)
-- [ ] T209 **Testes** de transição de status (DRAFT→ACTIVE, DRAFT→SHADOW, ACTIVE→DISABLED, proibidas) — `domain/RuleVersionTest.java`
-- [ ] T210 Implementar `Rule`, `RuleVersion`, `RuleSet`, `AuditEntry`
-- [ ] T211 Portas `RuleRepository`, `RuleSetRepository`, `AuditLog` e `RuleValidator`, com fakes em memória
-- [ ] T212 **Testes** dos casos de uso: criar, nova versão, ativar (conjunto N+1), desligar, rollback (N+k igual a N), scoring, falha de compilação não publica nada — `application/*Test.java`
-- [ ] T213 Implementar os casos de uso e o `RuleSetPublisher` interno (plan §4.2)
+- [x] T209 **Testes** de transição de status (DRAFT→ACTIVE, DRAFT→SHADOW, ACTIVE→DISABLED, proibidas) — `domain/RuleVersionTest.java`
+- [x] T210 Implementar `Rule`, `RuleVersion`, `RuleSet`, `AuditEntry`
+- [x] T211 Portas `RuleRepository`, `RuleSetRepository`, `AuditLog` e `RuleValidator`, com fakes em memória
+- [x] T212 **Testes** dos casos de uso: criar, nova versão, ativar (conjunto N+1), desligar, rollback (N+k igual a N), scoring, falha de compilação não publica nada — `application/*Test.java`
+- [x] T213 Implementar os casos de uso e o `RuleSetPublisher` interno (plan §4.2)
 
 ## Fase 4 — Persistência
 - [ ] T214 Flyway `V1__schema.sql` (plan §4.3) e `V2__seed_rules.sql` (8 regras + scoring 40/70 + conjunto versão 1)
