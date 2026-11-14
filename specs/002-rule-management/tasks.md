@@ -37,8 +37,8 @@ Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/
 **Checkpoint:** demo de criar, validar e ativar uma regra pela API (SC-001).
 
 ## Fase 6 — H5 sombra e H6 aprovação
-- [ ] T221 **Teste** + implementação do `:shadow` (entra no conjunto com status SHADOW)
-- [ ] T222 (P3, opcional) **Teste** + implementação do maker-checker (`403` quando aprovador = autor; CHECK no banco)
+- [x] T221 **Teste** + implementação do `:shadow` (entra no conjunto com status SHADOW)
+- [x] T222 (P3, opcional) **Teste** + implementação do maker-checker (`403` quando aprovador = autor; CHECK no banco)
 
 ## Fase 7 — Observabilidade e documentação
 - [ ] T223 Métricas `rules_published_total`, `rules_compilation_failures_total` e `rule_set_active_request_seconds` + painel no Grafana
