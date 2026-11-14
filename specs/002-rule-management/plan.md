@@ -115,6 +115,30 @@ Decisões da implementação (Fase 5):
 
 Erros em Problem Details. Todos os POSTs aceitam `Idempotency-Key`.
 
+## 4A. Evento de publicação: outbox + Debezium (ADR-13)
+
+Toda publicação de conjunto (plano 4.2) grava, **na mesma transação**, uma linha na tabela `outbox` (migração V5):
+
+| Coluna | Conteúdo |
+|---|---|
+| `id` | `uuid`, identificador do evento |
+| `aggregatetype` | `rule-sets.v1`: o Outbox Event Router usa este valor como nome do tópico |
+| `aggregateid` | `active`: chave fixa da mensagem (compactação: o último evento é o conjunto ativo) |
+| `type` | `RuleSetPublished` (vai para um header) |
+| `payload` | `jsonb` com o conjunto completo no formato `rule-set.v1` (o mesmo corpo de `GET /v1/rule-sets/active`) |
+| `created_at` | quando foi gravada |
+
+- **Porta:** `RuleSetOutbox.append(ActiveRuleSet)`, chamada pelo `RuleSetPublisher` logo depois de gravar o conjunto e antes da auditoria, dentro da transação serializável. Se qualquer passo falhar, a linha some junto.
+- **Sem apagar linhas:** diferente do padrão do Debezium de inserir e apagar na hora, as linhas ficam. Assim o snapshot inicial do conector as encontra, e a tabela cresce só uma linha por publicação (dezenas por dia, no máximo).
+- **Evento inicial:** a V5 grava um evento com o conjunto ativo do momento, para o motor não subir sem regras num ambiente que já tinha conjunto publicado.
+- **Debezium:** conector PostgreSQL (`pgoutput`) sobre `public.outbox` do `rules_db`, com o transform `EventRouter` (`route.by.field=aggregatetype`, tópico `${routedByValue}`) e `StringConverter` na chave e no valor. Exige `wal_level=logical` no Postgres do projeto. A configuração fica em `infra/connect/` e é registrada por script.
+- **Não usar `table.expand.json.payload`:** o Debezium infere **um único esquema** Connect a partir do JSON e, como cada regra tem parâmetros diferentes, mistura e descarta campos (medido: `params` saiu com `"floor":null` e perdeu `maxCount` e `minAmount`, embora a outbox estivesse certa). O `payload` sai como **texto JSON** com `StringConverter`, idêntico ao gravado na outbox; quem consome faz o parse do `rule-set.v1`.
+- **Reiniciar o conector do zero** (ambiente de teste): o Connect guarda o ponto de leitura pelo nome, então recriar o conector não refaz o snapshot. É preciso parar o conector, apagar os offsets (`DELETE /connectors/{nome}/offsets`), remover o slot de replicação e a publicação no Postgres.
+- **Verificado com o Kafka Connect real:** o snapshot inicial publicou o evento da V5 (chave `active`, 8 regras, parâmetros íntegros) e uma ativação pela API chegou ao tópico cerca de 1,7 s depois do pedido (versão 20, 9 regras, com a regra nova).
+- **Entrega:** pelo menos uma vez e em ordem (uma partição). O motor ignora versão menor ou igual à que tem.
+- **O `GET /v1/rule-sets/active` continua**, para operação, depuração e reconciliação; deixou de ser o caminho do motor.
+- **Métrica:** `rules_published_total` continua contando as publicações; um evento por publicação.
+
 ## 5. Regras iniciais (Flyway `V2__seed_rules.sql`)
 | ID | Expressão (CEL) | Params | Peso |
 |---|---|---|---|
@@ -145,10 +169,10 @@ Scoring inicial: MÉDIA ≥ 40, ALTA ≥ 70.
 - **I:** ✅ `rules-kernel` sem framework; serviço em camadas.
 - **II:** ✅.
 - **III:** ✅ `Idempotency-Key` nos POSTs; versões imutáveis.
-- **IV:** ✅ o motor não depende deste serviço por transação (ADR-13).
+- **IV:** ✅ o motor não depende deste serviço por transação nem para trocar regras: ele lê o tópico (ADR-13).
 - **V:** ✅ `rule-set.v1`.
 - **VII:** ✅ métricas: publicações, compilações com falha, latência do `/active`.
 
 ## 8. Riscos
 - **Curva do cel-java:** mitigação: spike de 2 h no início (T201). Plano B: JSONLogic, com perda da checagem de tipos, registrado como ADR se acontecer.
-- **Conjuntos grandes demais para o polling:** irrelevante na escala do case (dezenas de regras).
+- **Evento grande demais:** o evento leva o conjunto inteiro; na escala do case (dezenas de regras) são alguns KB. Muito acima disso, o evento passaria a levar só a versão e o motor buscaria o conjunto pelo GET.

@@ -4,7 +4,7 @@
 **Passos no desenho:** 3.2, 3.3, 6
 
 ## Contexto
-O case exige regras configuráveis, com thresholds dinâmicos e regras compostas, **sem redeploy**. Este serviço é onde o time antifraude cria, versiona, ativa, desliga e reverte regras. O motor (004) busca o conjunto ativo a cada 30 s (ADR-13).
+O case exige regras configuráveis, com thresholds dinâmicos e regras compostas, **sem redeploy**. Este serviço é onde o time antifraude cria, versiona, ativa, desliga e reverte regras. A cada publicação, a gestão grava o conjunto completo numa outbox, na mesma transação, e o Debezium o publica no tópico `rule-sets.v1`, de onde o motor o lê (ADR-13).
 
 Esta spec também cria o módulo **`rules-kernel`**, a linguagem de regras compartilhada: modelo, catálogo de features e compilador CEL. Ele é usado aqui (validação) e no motor (avaliação), para que os dois nunca discordem sobre o que é uma regra válida.
 
@@ -59,6 +59,15 @@ Como coordenador, quero que só alguém diferente do autor possa ativar uma regr
 **Cenários de aceite**
 1. **Given** R criada por `analista.a`, **When** `analista.a` tenta ativar, **Then** recebe `403`. **When** `coord.b` ativa, **Then** funciona e `approved_by=coord.b`.
 
+### H7 — Propagar a mudança ao motor por evento (P1)
+Como motor de detecção, quero receber o conjunto novo assim que ele for publicado, para que um kill switch ou uma regra nova valha em segundos, sem eu consultar a gestão.
+
+**Cenários de aceite**
+1. **Given** qualquer publicação (ativar, sombra, desligar, rollback ou scoring), **When** a transação termina, **Then** existe exatamente uma linha na `outbox` com o conjunto completo (`rule-set.v1`) e a mesma versão do conjunto publicado.
+2. **Given** a publicação falha (o conjunto não compila, ou qualquer erro antes do commit), **When** consulto a `outbox`, **Then** não há linha nova: o que não foi gravado no banco nunca vira evento.
+3. **Given** uma linha na `outbox`, **When** o Debezium a lê, **Then** o evento aparece em `rule-sets.v1` com chave `active` e o corpo igual ao de `GET /v1/rule-sets/active`.
+4. **Given** o serviço sobe sobre um banco que já tem um conjunto ativo e nenhum evento, **When** a migração roda, **Then** um evento inicial com o conjunto ativo é gravado na `outbox`, para o motor não ficar sem regras.
+
 ## Casos de borda
 - **Duas ativações simultâneas:** a versão do conjunto é gerada por sequência no banco, com transação serializável na publicação. Nenhum conjunto se perde.
 - **Expressão complexa demais:** nós ou profundidade acima do limite gera `422`.
@@ -74,6 +83,7 @@ Como coordenador, quero que só alguém diferente do autor possa ativar uma regr
 - **FR-007:** DEVE registrar toda mudança em `audit_log` (append-only).
 - **FR-008:** DEVE carregar via migração as **8 regras iniciais** e o scoring 40/70 (plan §5).
 - **FR-009:** acesso local por usuários em memória com papéis `RULE_AUTHOR` e `RULE_APPROVER`. OIDC via ALB é `[DOC]`.
+- **FR-010:** DEVE gravar, na mesma transação de cada publicação, uma linha na tabela `outbox` com o conjunto completo no formato `rule-set.v1`, para o Debezium (Outbox Event Router) publicá-la em `rule-sets.v1` (uma partição, compactado, chave `active`). Uma publicação que falha não deixa linha. A migração que cria a `outbox` grava também um evento com o conjunto ativo do momento.
 
 ## Entidades
 `Rule`, `RuleVersion` (imutável), `RuleSet` (versão publicada + itens + scoring), `AuditEntry`, `FeatureCatalog`, `CompiledRuleSet`.
@@ -82,6 +92,7 @@ Como coordenador, quero que só alguém diferente do autor possa ativar uma regr
 - **SC-001:** criar, validar e ativar uma regra em menos de 1 minuto pela API (demo ao vivo), **sem deploy nem restart** de nenhum serviço.
 - **SC-002:** `GET /v1/rule-sets/active` com `304` responde em p99 ≤ 10 ms.
 - **SC-003:** 100% das expressões das 8 regras iniciais compilam, e há casos de teste que disparam e que não disparam cada uma.
+- **SC-004:** toda publicação gera exatamente um evento em `rule-sets.v1`, com a versão do conjunto publicado, e o corpo valida contra `rule-set.v1`.
 
 ## Premissas e decisões em aberto
 - [NEEDS CLARIFICATION] **Escopo:** *padrão adotado: P1 (versões, validação, ativar, desligar, rollback, scoring) + P2 (sombra). P3 (aprovação) implementar se sobrar tempo; senão fica `[DOC]`.*

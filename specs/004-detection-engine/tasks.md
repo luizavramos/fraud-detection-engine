@@ -4,7 +4,7 @@ Base de caminhos: `detection-engine/src/{main,test}/java/br/com/motorfraude/engi
 
 ## Fase 1 — Setup
 - [ ] T401 Criar o módulo `detection-engine` (depende de `contracts`, `platform-commons`, `platform-streams` e `rules-kernel`) + teste ArchUnit
-- [ ] T402 [P] Adicionar ao compose (porta 8084, volume `/data`, `RULES_URL`, `RULES_POLL_INTERVAL`) e ao Prometheus
+- [ ] T402 [P] Adicionar ao compose (porta 8084, volume `/data`, `KAFKA_BOOTSTRAP_SERVERS`) e ao Prometheus
 
 ## Fase 2 — Estruturas de dados (H3)
 - [ ] T403 **Testes property-based** de `BucketRing` (janela = força bruta; rotação; eventos fora de ordem até 2 min) — `domain/features/BucketRingProperties.java`
@@ -34,8 +34,8 @@ Base de caminhos: `detection-engine/src/{main,test}/java/br/com/motorfraude/engi
 - [ ] T421 Implementar `TopologyFactory` e `DetectionEngineApp` (usa `StreamsAppBootstrap`, EOS v2, `commit.interval.ms=100`, static membership)
 
 ## Fase 5 — Regras a quente (H5)
-- [ ] T422 **Testes** (WireMock) do `HttpRuleSetProvider`: 200 troca a versão; 304 mantém; regra inválida mantém a anterior e incrementa a métrica; erro de rede mantém; snapshot gravado; inicialização com snapshot; sem nada → `ready=false`
-- [ ] T423 Implementar `HttpRuleSetProvider` + `RuleSetSnapshotFile` (escrita atômica) e ligar a readiness ao início da topologia
+- [ ] T422 **Testes** (Kafka real) do `KafkaRuleSetProvider`: evento novo troca a versão; versão repetida ou menor é ignorada; conjunto que não compila mantém o anterior e incrementa a métrica; Kafka fora do ar mantém o atual; sem nenhum evento `ready=false`; instância nova lê o último evento do tópico
+- [ ] T423 Implementar `KafkaRuleSetProvider` e ligar a readiness ao início da topologia
 - [ ] T424 **Teste de aceite** H5 com a gestão de regras real (Testcontainers ou compose): criar regra nova, mudar threshold, desligar e fazer rollback pela API → decisões refletem cada mudança em ≤ 35 s, **sem deploy nem restart do motor** (o teste confere que o uptime e o id do processo não mudaram)
 
 ## Fase 6 — Observabilidade

@@ -84,7 +84,8 @@ flowchart LR
     TXDB -->|CDC| TS
     TS -.->|backfill 90 dias, só no go-live| T6[[transaction-history-backfill.v1]]
     T6 -.-> D3
-    D4 -.->|polling 30 s: GET rule-sets/active| RM
+    RM -->|outbox + Debezium| T7[[rule-sets.v1<br/>compactado]]
+    T7 -.->|conjunto ativo| D4
     T1 --> D1
     T2 -.estado local.-> D2
     D5 -->|alerta| T4
@@ -225,7 +226,7 @@ Cada serviço (detection-engine, rule-management, notification-service) segue as
 | customer-service | `ProjectCustomerProfileUseCase` | `ProfileProjectionPublisher` (Kafka) |
 | transaction-service | `BackfillTransactionHistoryUseCase` | `TransactionHistorySource` (CDC/snapshot), `BackfillPublisher` (Kafka) |
 | detection-engine | `EvaluateTransactionUseCase` | `DedupStore`, `ProfileRepository`, `FeatureStore`, `RuleSetProvider`, `RuleEvaluator`, `DecisionPublisher`, `Clock` |
-| rule-management | `CreateRuleVersion`, `ValidateRule`, `ShadowRule`, `ActivateRule`, `DisableRule`, `RollbackRuleSet`, `DryRunRule` | `RuleRepository`, `RuleEvaluator`, `AuditLog` (o conjunto ativo é servido por `GET /v1/rule-sets/active`) |
+| rule-management | `CreateRuleVersion`, `ValidateRule`, `ShadowRule`, `ActivateRule`, `DisableRule`, `RollbackRuleSet`, `DryRunRule` | `RuleRepository`, `RuleEvaluator`, `AuditLog` (o conjunto publicado sai por evento via outbox; o ativo também é servido por `GET /v1/rule-sets/active`) |
 | notification-service | `DispatchAlertUseCase`, `RetryDeliveryUseCase`, `RegisterFeedbackUseCase` | `AlertRepository`, `DeliveryRepository`, `NotificationChannel` (push, e-mail, SMS, webhook), `ContactDirectory` |
 
 **Estrutura de pastas:**
@@ -268,7 +269,7 @@ fraud-detection/
 
 **Garantia automática da regra de dependência:** testes **ArchUnit** no CI falham se `domain` importar algo de `application`/`adapters`/`infrastructure`, ou se `application` importar Spring, Kafka ou JDBC.
 
-Padrões usados dentro das camadas (e por quê): **Strategy** (`NotificationChannel`: push, e-mail, SMS, webhook interno — Open/Closed para novos canais); **Specification/Composite** (regras compostas); **Cache local com polling condicional** (`ETag`; motor mantém o `RuleSet` em memória e em snapshot no disco); **Copy-on-write / imutabilidade** (`RuleSet` trocado atomicamente via `AtomicReference`, sem locks no caminho quente).
+Padrões usados dentro das camadas (e por quê): **Strategy** (`NotificationChannel`: push, e-mail, SMS, webhook interno — Open/Closed para novos canais); **Specification/Composite** (regras compostas); **Estado local alimentado por evento** (o motor mantém o `RuleSet` em memória e o atualiza pelo tópico `rule-sets.v1`); **Copy-on-write / imutabilidade** (`RuleSet` trocado atomicamente via `AtomicReference`, sem locks no caminho quente).
 
 ### 3.3 Topologia do detection-engine
 
@@ -279,7 +280,7 @@ Por evento, **na mesma transação EOS**:
 3. **Dedup** — state store `seen-tx` (`transactionId → timestamp`, retenção 24h **[H]**, configurável). Já visto → descarta e incrementa métrica `duplicates_dropped`. É o dedup **definitivo**: o Redis do receiver só filtra antes, sem garantia (ADR-10). Funciona localmente porque a mesma transação tem a mesma conta → mesma partição.
 4. **Enriquecimento** — lookup em `KTable<accountId, CustomerProfile>` + `GlobalKTable` de blocklist de contas/dispositivos sinalizados. Perfil ausente → `contextCompleteness = PARTIAL`.
 5. **Features** — lê e atualiza o agregado da conta (`account-features` store). *Nota:* a feature é calculada **incluindo** a transação atual.
-6. **Avaliação** — `RuleSet` corrente em memória (atualizado por polling na gestão de regras, ADR-13), regras ACTIVE e SHADOW.
+6. **Avaliação** — `RuleSet` corrente em memória (atualizado pelo tópico `rule-sets.v1`, ADR-13), regras ACTIVE e SHADOW.
 7. **Decisão** — score + severidade; emite em `fraud-decisions.v1` (sempre) e `fraud-alerts.v1` (se severidade ≥ MEDIUM e regra ACTIVE).
 
 `processing.guarantee=exactly_once_v2` garante: se o pod cair entre os passos 3 e 7, **nada** é comprometido (nem offset, nem estado, nem saída), e o reprocessamento produz o mesmo resultado. É isso que torna o dedup do passo 3 e os agregados do passo 5 corretos sob falha.
@@ -362,23 +363,24 @@ sequenceDiagram
     RM->>RM: compila CEL contra o schema do catálogo de features (tipos)
     RM->>RM: executa casos de teste da regra
     A->>RM: POST .../shadow → depois .../activate (aprovador ≠ autor)
-    RM->>PG: TX: grava versão + novo rule_set (versão N+1)
-    loop a cada 30 s (configurável)
-        E->>RM: GET /v1/rule-sets/active  (If-None-Match: versão atual)
-        RM-->>E: 304 sem mudança  |  200 RuleSet versão N+1
-    end
-    E->>E: compila; se OK troca AtomicReference<RuleSet> e grava snapshot em disco; se falha mantém versão anterior + métrica + alerta
+    RM->>PG: TX única: grava versão + novo rule_set (N+1) + linha na outbox (conjunto completo, rule-set.v1)
+    PG-->>DBZ: Debezium lê a outbox pelo WAL
+    DBZ->>K: publica em rule-sets.v1 (compactado, chave fixa)
+    K-->>E: cada instância do motor consome o último conjunto
+    E->>E: compila; se OK troca AtomicReference<RuleSet>; se falha mantém versão anterior + métrica + alerta
     Note over E: cada Decision registra ruleSetVersion
 ```
 
-**[ADR-13] Gestão de regras ligada direto no motor (polling), sem Kafka.**
-- **Nenhuma transação chama a gestão de regras.** O motor guarda o conjunto ativo em memória e só pergunta, de tempos em tempos, se ele mudou. Chamar a cada transação seria ~690 M chamadas/dia por algo que muda poucas vezes ao dia, e transformaria a gestão em dependência crítica (contra o requisito 4 do PDF).
-- **Por que polling e não Kafka:** elimina outbox e tópico (a gestão grava só no próprio banco, sem escrita dupla). Com `ETag`/versão, a resposta "sem mudança" é barata: 6–12 instâncias a cada 30 s dão < 1 req/s.
-- **Intervalo:** configurável, padrão 30 s. **Não é requisito do PDF** (que só diz "sem redeploy"); o critério é o tempo aceitável para o **kill switch** fazer efeito, no incidente de "aumento súbito de falsos positivos". Para urgência, a gestão envia um aviso "recarregue agora" a cada instância (melhor esforço, via DNS do serviço headless) **[DOC]**; se o aviso se perder, o polling garante a convergência.
-- **Gestão fora do ar quando um pod do motor sobe:** o motor usa o último conjunto válido salvo em disco. Sem snapshot e sem gestão, o pod **não fica pronto** (readiness falha) e não recebe partições — o motor nunca avalia transações sem regras.
-- ❌ Contrapartidas: propagação de até um intervalo (vs. ~1 s via Kafka); o motor passa a conhecer a API da gestão. Evolução: voltar ao tópico compactado se houver muitas instâncias ou necessidade de propagação sub-segundo.
+**[ADR-13] Gestão de regras publica o conjunto por evento (outbox + Debezium) em tópico compactado.**
+- **Nenhuma transação chama a gestão de regras.** O motor guarda o conjunto ativo em memória e o atualiza quando chega um evento. Chamar a gestão a cada transação seria ~690 M chamadas/dia por algo que muda poucas vezes ao dia, e transformaria a gestão em dependência crítica (contra o requisito 4 do PDF).
+- **Como:** na **mesma transação** que grava o novo `rule_set`, a gestão insere uma linha na tabela `outbox` com o conjunto completo (schema `rule-set.v1`). O Debezium (Outbox Event Router) lê o WAL e publica em `rule-sets.v1`: uma partição, **compactado**, chave fixa `active`. Não há escrita dupla (banco e Kafka): o que não foi gravado no banco nunca vira evento.
+- **Por que evento e não polling:** a propagação cai de até 30 s para alguns segundos, o que importa para o **kill switch** no incidente de "aumento súbito de falsos positivos"; a gestão deixa de ser consultada pelas instâncias do motor; e uma instância nova lê o último conjunto do próprio tópico, sem chamada HTTP e sem snapshot em disco.
+- **Entrega:** pelo menos uma vez e em ordem (uma partição). O motor ignora um evento de versão menor ou igual à que já tem, então um reenvio não faz mal.
+- **Gestão fora do ar:** o motor não depende dela; o tópico guarda o último conjunto. **Kafka ou Debezium fora do ar:** as publicações ficam na outbox e saem quando voltarem; o motor segue com o último conjunto. **Nenhum evento ainda** (ambiente novo): o pod **não fica pronto** (readiness falha) e não recebe partições, então o motor nunca avalia transações sem regras.
+- **`GET /v1/rule-sets/active` continua** (com `ETag`), para operação, depuração e reconciliação. Deixa de ser o caminho do motor.
+- ❌ Contrapartidas: mais peças (tabela outbox, Debezium, tópico e `wal_level=logical` no Postgres da gestão); o consumidor precisa tratar versão e ordem; o evento replica o conjunto inteiro (dezenas de regras, alguns KB). Alternativa descartada: polling com `ETag` a cada 30 s (mais simples, mas com propagação de até um intervalo).
 
-- **Propagação:** até o intervalo de polling (padrão 30 s); kill switch com aviso imediato.
+- **Propagação:** alguns segundos (latência do Debezium e do consumo).
 - **Validação dupla:** no rule-management (feedback ao autor) e no motor (defesa em profundidade: o motor nunca aplica algo que não compila).
 - **Consistência entre instâncias:** durante alguns segundos, instâncias diferentes podem estar em versões diferentes. **Aceito** — cada decisão carrega `ruleSetVersion`, então a auditoria é exata.
 - **Proteção de latência:** limite de custo de expressão no compile (CEL permite estimar custo) + timeout/métrica por regra; regra lenta é sinalizada no dashboard.
@@ -421,6 +423,7 @@ São **três problemas diferentes**, cada um com sua solução:
 | `customer-profile.v1` | `accountId` | 48 (co-particionado) | — | compact |
 | `transaction-history-backfill.v1` | `accountId` | 48 (co-particionado) | 7 dias (usado só no go-live/reprocessamento) | delete |
 | `blocklist.v1` | `entityToken` | 6 | — | compact |
+| `rule-sets.v1` | `active` (chave fixa) | 1 | — | compact |
 | `fraud-decisions.v1` | `accountId` | 48 | 3 dias (fonte de verdade de longo prazo é o S3) | delete |
 | `fraud-alerts.v1` | `accountId` | 12 | 7 dias | delete |
 | `alerts.retry.*`, `*.dlq` | — | 6 | 14 dias | delete |
@@ -739,7 +742,7 @@ Alertas por **burn rate multi-janela** (ex.: 14,4× em 1h e 5m → page; 6× em 
 
 **Receiver:** requisições/s por origem e por status (`202`, `400`, `429`, `503`) · duplicatas barradas pelo Redis · ativações de fail-open do Redis · latência do produce no Kafka.
 
-**Técnicas (RED/USE):** taxa de eventos processados · latência ponta a ponta (histograma) e por etapa · **consumer lag em registros e em tempo, por partição** · rebalances e duração · tempo de restore do estado · tamanho do RocksDB · taxa de DLQ · pausas de GC · estado dos circuit breakers · idade do `RuleSet` em memória e falhas de polling por instância · `profile_staleness`.
+**Técnicas (RED/USE):** taxa de eventos processados · latência ponta a ponta (histograma) e por etapa · **consumer lag em registros e em tempo, por partição** · rebalances e duração · tempo de restore do estado · tamanho do RocksDB · taxa de DLQ · pausas de GC · estado dos circuit breakers · idade do `RuleSet` em memória e eventos de regras recusados por instância · `profile_staleness`.
 
 **De negócio (o que diferencia):** alertas/s **por regra e por severidade**, comparados ao baseline (mesma hora, últimas 4 semanas) · shadow hits por regra · taxa de `FALSE_POSITIVE` vs. `CONFIRMED_FRAUD` do feedback · % de decisões com `contextCompleteness=PARTIAL` · duplicatas descartadas · tempo de propagação de regra · `ruleSetVersion` ativo por instância (detecta instância "presa" em versão antiga).
 
@@ -765,7 +768,7 @@ Processo: severidades SEV1–3, on-call, canal de incidente, **postmortem sem cu
 | **Property-based** | jqwik | Anel de buckets: para qualquer sequência de eventos, a contagem na janela == contagem por força bruta; conjunto LRU nunca excede N |
 | **Topologia** | `TopologyTestDriver` (Kafka Streams) | Dedup de transação repetida, agregados, enriquecimento com perfil ausente, poison pill → DLQ, troca de RuleSet em runtime — determinístico, sem broker |
 | **Regras** | Casos de teste por regra (rodam no rule-management antes de ativar) | Regra faz o que o autor diz |
-| **Integração** | Testcontainers (Kafka, Postgres), WireMock (provedores) | EOS real, polling de regras com gestão fora do ar (snapshot em disco), idempotência de entrega, circuit breaker |
+| **Integração** | Testcontainers (Kafka, Postgres), WireMock (provedores) | EOS real, troca de regras por evento (Kafka e Debezium reais, evento inválido mantém o conjunto anterior, motor sem nenhum evento não fica pronto), idempotência de entrega, circuit breaker |
 | **Contrato** | Validação de compatibilidade de schema no CI | Evolução de contrato não quebra consumidores |
 | **Carga** | `load-generator` próprio (produz 8k/25k TPS com padrão de fraude sintético) + histogramas HdrHistogram | **SLO de 500 ms medido**, não suposto; ponto de saturação por pod |
 | **Caos / resiliência** | Matar pod durante carga; Toxiproxy (latência/queda nos provedores e no Postgres) | **0 alertas duplicados e 0 eventos perdidos** sob falha — verificado por um consumidor-auditor que confere cada `transactionId` |
@@ -802,7 +805,7 @@ A pirâmide prioriza domínio puro e TopologyTestDriver (rápidos e determiníst
 |---|---|---|
 | **1** | Repositório multi-módulo; `docker-compose` (Kafka KRaft, Postgres, Prometheus, Grafana); contratos; camadas da Clean Architecture + ArchUnit; domínio e `EvaluateTransactionUseCase` (buckets, LRU, scoring) com testes unitários e property-based | Fundação |
 | **2** | `receiver` (HTTP → Kafka, validação, rate limit, Redis anti-duplicata com fail-open) e `customer-service` (projeção do perfil); topologia Kafka Streams com EOS: validação → DLQ, dedup, KTable de perfil, features, avaliação CEL, decisões e alertas; testes com `TopologyTestDriver` | Fundação |
-| **3** | `rule-management`: API, validação CEL, versões, SHADOW/ACTIVE/rollback, maker-checker, `GET /v1/rule-sets/active` com ETag; no motor: polling, snapshot em disco, readiness e troca de RuleSet a quente | Núcleo do diferencial |
+| **3** | `rule-management`: API, validação CEL, versões, SHADOW/ACTIVE/rollback, maker-checker, outbox + Debezium para `rule-sets.v1` e `GET /v1/rule-sets/active` com ETag; no motor: consumo do tópico, readiness e troca de RuleSet a quente | Núcleo do diferencial |
 | **4** | `notification-service`: persistência, idempotência de entrega, canais (webhook interno + push/e-mail simulados), Resilience4j, retry topics, DLQ, supressão por conta | Resiliência |
 | **5** | Observabilidade: métricas técnicas e de negócio, dashboard Grafana, tracing OTel via headers Kafka. `load-generator` + **teste de carga** (8k e 25k TPS) com histograma de latência | Prova dos NFRs |
 | **6** | Testes de caos (matar pod, Toxiproxy) com consumidor-auditor; README; ADRs (1–8); diagramas C4 (contexto, contêineres) e de sequência; documentação de segurança/LGPD, runbooks e evoluções; **log de uso de IA** | Documentação |

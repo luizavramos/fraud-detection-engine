@@ -37,6 +37,7 @@ transaction-commands.dlq|1|6|delete|$D14
 customer-profile.v1|6|48|compact|-
 transaction-history-backfill.v1|6|48|delete|$D7
 blocklist.v1|1|6|compact|-
+rule-sets.v1|1|1|compact|-
 fraud-decisions.v1|6|48|delete|$D3
 fraud-alerts.v1|3|12|delete|$D7
 alerts.retry.1m|1|6|delete|$D14

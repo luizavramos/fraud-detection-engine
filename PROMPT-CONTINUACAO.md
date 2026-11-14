@@ -59,8 +59,8 @@ O PDF também exige **deixar explícito como e quando a IA foi usada**. Mantenha
 - **Gestão de regras** (Spring Boot + Postgres `rules_db`):
   - regras são **dados**, com versões imutáveis;
   - ações: ativar, desligar (kill switch), rollback, modo sombra, scoring;
-  - **o motor busca o conjunto ativo por polling a cada 30 s** em `GET /v1/rule-sets/active` (ETag/304), compila em memória, troca de forma atômica e grava snapshot em disco. Sem snapshot nem gestão disponível, a readiness falha;
-  - **sem tópico de regras e sem outbox**;
+  - **a cada publicação, a gestão grava o conjunto completo numa outbox (mesma transação) e o Debezium o publica em `rule-sets.v1` (compactado)**; o motor consome o tópico, compila em memória e troca de forma atômica. Sem nenhum evento, a readiness falha;
+  - **`GET /v1/rule-sets/active` (ETag) continua para operação e reconciliação**, não é mais o caminho do motor;
   - **nenhuma transação chama a gestão de regras**;
   - mudar regras **nunca** exige deploy. Só um **dado novo** no catálogo de features exige deploy do motor.
   - o módulo compartilhado **`rules-kernel`** (catálogo de features + compilador e avaliador CEL) é usado pela gestão e pelo motor.

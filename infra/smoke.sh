@@ -70,6 +70,7 @@ transaction-commands.dlq:1:delete
 customer-profile.v1:6:compact
 transaction-history-backfill.v1:6:delete
 blocklist.v1:1:compact
+rule-sets.v1:1:compact
 fraud-decisions.v1:6:delete
 fraud-alerts.v1:3:delete
 alerts.retry.1m:1:delete
@@ -101,6 +102,8 @@ if [ -n "$cp_a" ] && [ "$cp_a" = "$cp_b" ] && [ "$cp_a" = "$cp_c" ]; then ok "co
 echo ">> infraestrutura de apoio"
 check "postgres: bancos rules_db e alerts_db" \
   "[ \"\$(docker compose exec -T postgres psql -U $PG_USER -d postgres -Atc \"select count(*) from pg_database where datname in ('rules_db','alerts_db')\")\" = 2 ]"
+check "postgres (rules_db): wal_level=logical, para o Debezium da outbox" \
+  "[ \"\$(docker compose exec -T postgres psql -U $PG_USER -d postgres -Atc 'show wal_level')\" = logical ]"
 check "bank-db: wal_level=logical" \
   "[ \"\$(docker compose exec -T bank-db psql -U $BANK_USER -d bank -Atc 'show wal_level')\" = logical ]"
 check "bank-db: 10 mil clientes sintéticos" \

@@ -51,10 +51,10 @@ Como responsável pela resiliência, quero que o motor use uma cópia local do p
 Como analista, quero que uma regra ativada na gestão de regras passe a valer no motor sem reiniciar nada.
 
 **Cenários de aceite**
-1. **Given** o motor com o conjunto 41, **When** a gestão publica o 42, **Then** em ≤ 30 s (intervalo configurável) as decisões passam a registrar `ruleSetVersion=42`.
+1. **Given** o motor com o conjunto 41, **When** a gestão publica o 42, **Then** em poucos segundos (meta ≤ 10 s) as decisões passam a registrar `ruleSetVersion=42`.
 2. **Given** o conjunto 42 chega com uma regra que não compila, **When** o motor tenta carregar, **Then** mantém o 41, registra o erro e incrementa `engine_ruleset_load_failures_total`.
 3. **Given** a gestão de regras está fora e o motor reinicia, **When** sobe, **Then** carrega o último conjunto salvo em disco e fica pronto.
-4. **Given** não há snapshot em disco nem gestão no ar, **When** o motor sobe, **Then** a readiness falha e ele não processa transações.
+4. **Given** o tópico `rule-sets.v1` está vazio (ambiente novo), **When** o motor sobe, **Then** a readiness falha e ele não processa transações.
 
 ### H6 — Não duplicar nem perder sob falha (P1)
 Como responsável pelo case, quero provar que derrubar o motor no meio da carga não gera alerta duplicado nem transação sem decisão.
@@ -90,7 +90,7 @@ Como responsável pelo go-live, quero popular o histórico de 90 dias antes de l
 - **FR-002:** DEVE deduplicar por `transactionId` num state store com retenção de 24 h, dentro da transação.
 - **FR-003:** DEVE manter por conta: buckets de 1 min ×60, 1 h ×24 e 1 dia ×90 (`count`, `sum`, `max`); últimos 50 beneficiários; últimos 10 dispositivos.
 - **FR-004:** DEVE materializar `customer-profile.v1` como tabela local co-particionada, e `blocklist.v1` como tabela global.
-- **FR-005:** DEVE obter o conjunto de regras por polling em `GET /v1/rule-sets/active` (ETag, intervalo padrão 30 s), compilar com o `rules-kernel`, trocar de forma atômica e salvar snapshot em disco.
+- **FR-005:** DEVE consumir o tópico `rule-sets.v1` (compactado, chave fixa; cada evento é o conjunto `rule-set.v1` completo), compilar com o `rules-kernel`, trocar de forma atômica, ignorar versão menor ou igual à atual e manter o conjunto anterior se o evento não compilar.
 - **FR-006:** DEVE publicar `FraudDecision` para toda transação nova e `FraudAlert` quando a severidade for MEDIUM ou HIGH.
 - **FR-007:** DEVE preencher `eventReceivedAt` a partir do header `receivedAt` e medir a latência fim a fim.
 - **FR-008:** DEVE consumir `transaction-history-backfill.v1` só para atualizar buckets (H8).
@@ -103,7 +103,7 @@ Como responsável pelo go-live, quero popular o histórico de 90 dias antes de l
 ## Critérios de sucesso
 - **SC-001:** latência fim a fim (chegada no receiver → alerta publicado) **p99 ≤ 500 ms** a 8.000 TPS local; meta interna ~225 ms.
 - **SC-002:** 0 decisões duplicadas e 0 transações sem decisão no teste de caos (H6).
-- **SC-003:** uma regra ativada vale no motor em ≤ intervalo de polling + 5 s.
+- **SC-003:** uma regra ativada vale no motor em ≤ 10 s (latência do Debezium e do consumo).
 - **SC-004:** estado por conta ≤ 5 KB (medido pelo serde).
 
 ## Premissas

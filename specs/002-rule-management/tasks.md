@@ -48,3 +48,10 @@ Caminhos: `rules-kernel/src/...` e `rule-management/src/{main,test}/java/br/com/
 ## Dependências
 T201 → T202 → Fase 2 → Fase 3 → Fase 4 → Fase 5 → (Fases 6 e 7).
 A Fase 2 libera a 004 assim que terminar.
+
+## Fase 8 — Evento de publicação: outbox + Debezium (ADR-13 revisado)
+- [x] T226 **Testes** da outbox: cada publicação (ativar, sombra, desligar, rollback, scoring) grava exatamente um evento, na mesma transação; falha (conjunto que não compila, erro na auditoria) não grava; o payload é o `rule-set.v1` completo e valida contra o schema — `application/RuleSetOutboxTest.java`
+- [x] T227 Migração `V5__outbox.sql` (tabela `outbox` + evento inicial com o conjunto ativo), porta `RuleSetOutbox`, adaptador Postgres e ligação no `RuleSetPublisher`
+- [x] T228 **Teste de integração** (Postgres): a linha da outbox e o conjunto entram e saem juntos; payload igual ao do `GET /active`; evento inicial presente depois da migração
+- [x] T229 Infra: tópico `rule-sets.v1` (1 partição, compactado) em `create-topics.sh`; `wal_level=logical` no Postgres do projeto; conector Debezium (Outbox Event Router) em `infra/connect/` com script de registro
+- [x] T230 **Prova com Kafka Connect real**: publicar pela API e ler o evento no tópico `rule-sets.v1`, com chave `active` e corpo válido contra `rule-set.v1`

@@ -30,11 +30,11 @@ Terminando com `0 falhas`, o ambiente está pronto.
 
 | Serviço | Endereço no host | Observação |
 |---|---|---|
-| Kafka (KRaft, 1 broker) | `localhost:9092` | 14 tópicos criados pelo `kafka-init` (`infra/kafka-init/create-topics.sh`) |
-| Postgres do projeto | `localhost:5432` | bancos `rules_db` e `alerts_db`; usuário e senha `motorfraude` |
+| Kafka (KRaft, 1 broker) | `localhost:9092` | 15 tópicos criados pelo `kafka-init` (`infra/kafka-init/create-topics.sh`) |
+| Postgres do projeto | `localhost:5432` | bancos `rules_db` e `alerts_db`; usuário e senha `motorfraude`; `wal_level=logical` (o Debezium lê a outbox do `rules_db`) |
 | Banco legado (fonte do CDC) | `localhost:5433` | banco `bank`, usuário e senha `bank`; 10 mil clientes **sintéticos** |
 | Redis | `localhost:6379` | |
-| Kafka Connect + Debezium | `localhost:18083` | sem conectores até as specs 003 e 006 |
+| Kafka Connect + Debezium | `localhost:18083` | conector `rule-sets-outbox` (registre com `sh infra/connect/register-rule-sets-outbox.sh`, depois de subir o rule-management); os conectores das specs 003 e 006 ainda não existem |
 | Prometheus | `localhost:9090` | alvos dos serviços 8081–8086 aparecem como DOWN até as specs 001–006 |
 | Grafana | `localhost:3000` | usuário `admin`, senha `admin`; dashboard "Motor de fraude" já provisionado |
 

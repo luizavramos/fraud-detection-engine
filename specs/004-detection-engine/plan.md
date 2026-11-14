@@ -10,7 +10,7 @@ Aplicação **Kafka Streams** (sem Spring) com a **Processor API**. O processame
 
 Toda a lógica fica no caso de uso `EvaluateTransactionUseCase`, que é testável sem Kafka. A topologia só adapta.
 
-Decisões de referência: ADR-2 (Kafka Streams), ADR-3 (perfil local), ADR-7 (idempotência), ADR-12 (histórico no fluxo), ADR-13 (regras por polling).
+Decisões de referência: ADR-2 (Kafka Streams), ADR-3 (perfil local), ADR-7 (idempotência), ADR-12 (histórico no fluxo), ADR-13 (regras por evento, via outbox).
 
 ## 2. Contexto técnico
 | Item | Valor |
@@ -19,7 +19,7 @@ Decisões de referência: ADR-2 (Kafka Streams), ADR-3 (perfil local), ADR-7 (id
 | Garantia | `exactly_once_v2`, `commit.interval.ms=100` |
 | Membership | `group.instance.id=${HOSTNAME}` (static membership), `num.standby.replicas=1` em prod (0 local) |
 | Estado | RocksDB; em produção, volume EBS gp3 |
-| Regras | `rules-kernel` (002) + `HttpRuleSetProvider` (polling com ETag) |
+| Regras | `rules-kernel` (002) + `KafkaRuleSetProvider` (consome `rule-sets.v1`) |
 | HTTP | `MiniHttpServer` do módulo `platform-streams` (003/T301): `/health/live`, `/health/ready`, `/metrics` |
 | Porta | 8084 |
 
@@ -88,13 +88,12 @@ public final class EvaluateTransactionUseCase {
 ```
 O `EvaluateProcessor` (adapter) converte o registro em `TransactionCommand`, lê `receivedAt` do header, chama o caso de uso e encaminha `Outcome` para os dois sinks. As portas de store são implementadas por adapters que envolvem os state stores do `ProcessorContext`.
 
-## 6. Regras por polling (`adapters/gateway/rules/HttpRuleSetProvider`)
-- **Agendamento:** `ScheduledExecutorService` a cada `RULES_POLL_INTERVAL` (padrão 30 s).
-- **Requisição:** `GET {RULES_URL}/v1/rule-sets/active` com `If-None-Match`, timeout de 2 s.
-- **`200`:** compila com `RuleCompiler.compileAll`. Se OK: `AtomicReference.set`, grava `/data/ruleset.json` (escrita atômica: arquivo temporário + rename) e atualiza o gauge de versão. Se falhar: mantém o atual e incrementa a métrica de falha.
-- **`304`:** nada muda.
-- **Erro de rede:** mantém o atual e registra a idade do conjunto.
-- **Inicialização:** tenta o polling; se falhar, carrega o snapshot; se não houver nenhum dos dois, `ready=false`. A topologia **só inicia** quando `ready=true`.
+## 6. Regras por evento (`adapters/gateway/rules/KafkaRuleSetProvider`)
+- **Fonte:** o tópico `rule-sets.v1` (uma partição, compactado, chave fixa `active`). Cada evento é o conjunto completo no formato `rule-set.v1`, publicado pela gestão via outbox e Debezium (ADR-13).
+- **Consumo:** um consumidor simples, fora do Kafka Streams e fora do caminho da transação. Lê o último evento ao subir e continua ouvindo.
+- **Evento novo:** se a versão for maior que a atual, compila com `RuleCompiler.compileAll`. Se OK: `AtomicReference.set` e atualiza o gauge de versão. Se falhar: mantém o atual e incrementa a métrica de falha. Versão menor ou igual: ignora (é um reenvio).
+- **Kafka fora do ar:** mantém o conjunto atual e registra a idade dele.
+- **Inicialização:** lê o último evento do tópico; se não houver nenhum, `ready=false`. A topologia **só inicia** quando `ready=true`. Não há snapshot em disco: o tópico compactado já é o snapshot.
 
 ## 7. Observabilidade
 | Métrica | Tipo | Labels |
@@ -119,7 +118,7 @@ O dashboard Grafana do motor mostra: p99 fim a fim × SLO, decisões por severid
 | Domínio | `FeatureSnapshot` (cada feature do catálogo), `Decision`/`Alert` (UUIDv5 estável, severidade) |
 | Caso de uso (portas em memória) | H1–H4 e H7 com `CompiledRuleSet` de teste |
 | `TopologyTestDriver` | dedup, saídas nos tópicos certos, perfil ausente → PARTIAL, backfill sem saída, DLQ, blocklist |
-| `HttpRuleSetProvider` (WireMock) | 200/304/erro, regra inválida mantém a anterior, snapshot em disco, readiness |
+| `KafkaRuleSetProvider` (Kafka real) | evento novo troca a versão, versão repetida ou menor ignora, regra inválida mantém a anterior, sem evento a readiness falha |
 | Integração (Testcontainers Kafka) | EOS real: reprocessamento após crash simulado não duplica |
 | Carga | `load-generator` 8k TPS × 5 min: p99 fim a fim medido |
 | Caos | kill -9 de uma instância durante a carga + **consumidor-auditor** que confere uma decisão por `transactionId` |
@@ -129,7 +128,7 @@ O dashboard Grafana do motor mostra: p99 fim a fim × SLO, decisões por severid
 - **I:** ✅ caso de uso puro; topologia como adapter.
 - **II:** ✅.
 - **III:** ✅ dedup no store + EOS + `alertId` determinístico.
-- **IV:** ✅ FR-010; o polling de regras roda fora do caminho da transação.
+- **IV:** ✅ FR-010; o consumo de regras roda fora do caminho da transação.
 - **V:** ✅.
 - **VI:** ✅ só tokens no estado e nas saídas.
 - **VII:** ✅ §7.
