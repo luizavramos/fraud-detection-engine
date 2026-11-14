@@ -40,6 +40,14 @@ Terminando com `0 falhas`, o ambiente está pronto.
 
 Alguma porta ocupada? Copie `.env.example` para `.env` e mude a porta do host.
 
+### Serviços da aplicação
+Ficam no perfil `app` do compose, para o `up -d` acima continuar sem build. Exemplo, o receiver (porta 8081):
+
+```bash
+./mvnw -pl receiver -am package -DskipTests
+docker compose --profile app up -d --build receiver
+```
+
 ### Parar e limpar
 ```bash
 docker compose down        # para os containers e mantém os dados
@@ -64,11 +72,12 @@ Maven Enforcer, que barra Java < 21 e Jackson 2 (o projeto usa Jackson 3).
 |---|---|
 | `contracts/` | JSON Schemas versionados (estritos), records Java, `JsonCodec` e `ContractAssertions` (teste de contrato dos produtores) |
 | `platform-commons/` | Base comum sem Spring e sem Kafka Streams: logs JSON com dados pessoais mascarados, `traceparent` em headers Kafka, `Clock` e regras ArchUnit da Clean Architecture |
+| `receiver/` | Porta de entrada HTTP (spec 001): valida, limita, barra retries e publica no Kafka |
 | `infra/` | Compose: criação de tópicos, `init.sql` dos bancos, Prometheus, Grafana e o `smoke.sh` |
 | `specs/` | Constituição do projeto e specs 000–006, com plano e tarefas de cada uma |
 | `docs/` | Registro do uso de IA |
 
-Os módulos de serviço (`receiver`, `rule-management`, `customer-service`, `detection-engine`,
+Os demais módulos de serviço (`rule-management`, `customer-service`, `detection-engine`,
 `notification-service`, `transaction-service`) entram nas specs 001–006.
 
 ## Teste de carga
@@ -84,4 +93,5 @@ previsto:
 | Spec | Estado |
 |---|---|
 | 000 Plataforma e contratos | Fases 1–4 e fechamento prontos; gerador de carga (Fase 5) adiado |
-| 001–006 | Não iniciadas |
+| 001 Receiver | Em andamento: Fase 1 (módulo e compose) pronta |
+| 002–006 | Não iniciadas |

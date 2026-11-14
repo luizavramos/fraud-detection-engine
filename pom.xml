@@ -15,6 +15,7 @@
     <modules>
         <module>contracts</module>
         <module>platform-commons</module>
+        <module>receiver</module>
     </modules>
 
     <properties>

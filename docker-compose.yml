@@ -167,6 +167,35 @@ services:
       timeout: 5s
       retries: 10
 
+
+  # Serviços da aplicação: perfil "app", para o `docker compose up -d` da infraestrutura continuar sem build.
+  # Antes: ./mvnw -pl receiver -am package -DskipTests
+  # Subir: docker compose --profile app up -d --build receiver
+  receiver:
+    profiles: ["app"]
+    build: ./receiver
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    ports:
+      - "${RECEIVER_HOST_PORT:-8081}:8081"
+    environment:
+      # Nomes de propriedade definitivos entram com a T111 (Kafka) e a T114 (Redis)
+      RECEIVER_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      RECEIVER_REDIS_HOST: redis
+      RECEIVER_REDIS_PORT: 6379
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
 volumes:
   postgres-data:
   bank-db-data:

@@ -1,0 +1,37 @@
+# Valores locais (spec 001, plan §2). Em produção, tudo isto vem de variáveis de ambiente.
+spring:
+  application:
+    name: receiver
+  threads:
+    virtual:
+      enabled: true          # MVC + virtual threads: aguardar o ack do Kafka não ocupa thread de plataforma
+  main:
+    banner-mode: off
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true        # /actuator/health/liveness e /readiness (constituição VII)
+  tracing:
+    sampling:
+      probability: 1.0       # local: tudo; em produção a amostragem é reduzida
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          enabled: false     # sem coletor OTLP no ambiente local
+  otlp:
+    metrics:
+      export:
+        enabled: false
+  metrics:
+    tags:
+      service: receiver
