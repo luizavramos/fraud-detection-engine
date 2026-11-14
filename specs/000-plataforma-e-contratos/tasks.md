@@ -42,7 +42,7 @@ Formato: `[ID] [P?] [História] Descrição — arquivo(s)`. [P] = pode rodar em
 - [ ] T025 [H4] CLI (`--tps`, `--duration`, `--fraud-ratio`, `--duplicate-ratio`, `--target`) e execução com `./mvnw -pl load-generator exec:java -Dexec.args="--tps 8000 --duration 60s"`
 
 ## Fase 6 — Fechamento
-- [ ] T026 Completar o `README.md` (subir e testar) e conferir o SC-001 do zero numa pasta limpa. A seção "carga" do README entra junto com a Fase 5 (T025)
+- [x] T026 Completar o `README.md` (subir e testar) e conferir o SC-001 do zero numa pasta limpa. A seção "carga" do README entra junto com a Fase 5 (T025)
 
 ## Dependências
 Fase 1 → (Fases 2, 3, 4 em paralelo) → Fase 6. A 000 fecha sem a Fase 5.
