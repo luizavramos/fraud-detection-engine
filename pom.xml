@@ -33,6 +33,7 @@
         <archunit.version>1.5.1</archunit.version>
         <jqwik.version>1.10.2</jqwik.version>
         <hdrhistogram.version>2.2.2</hdrhistogram.version>
+        <bucket4j.version>8.22.0</bucket4j.version>
 
         <!-- Plugins -->
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
@@ -110,6 +111,11 @@
                 <groupId>org.hdrhistogram</groupId>
                 <artifactId>HdrHistogram</artifactId>
                 <version>${hdrhistogram.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.bucket4j</groupId>
+                <artifactId>bucket4j_jdk17-core</artifactId>
+                <version>${bucket4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

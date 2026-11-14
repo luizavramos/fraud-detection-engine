@@ -9,9 +9,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * {@code RECEIVER_REDIS_HOST}, {@code RECEIVER_CLIENTS}). Valores locais em {@code application.yml}.
  *
  * @param clients origens autorizadas (FR-007a)
+ * @param rateLimitPerSecond requisições por segundo por origem e por instância (padrão 20.000; env {@code RECEIVER_RATE_LIMIT_PER_SECOND})
  */
 @ConfigurationProperties(prefix = "receiver")
-public record ReceiverProperties(List<String> clients, Kafka kafka, Redis redis) {
+public record ReceiverProperties(List<String> clients, long rateLimitPerSecond, Kafka kafka, Redis redis) {
 
     /**
      * @param bootstrapServers brokers

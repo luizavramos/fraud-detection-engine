@@ -33,10 +33,10 @@ class ReceiverStartupTest {
     }
 
     @Test
-    @DisplayName("liveness e readiness respondem 200")
+    @DisplayName("sem Kafka: o serviço sobe e está vivo (200), mas não está pronto (503): readiness exige o produtor Kafka")
     void health() throws Exception {
         assertThat(get("/actuator/health/liveness").statusCode()).isEqualTo(200);
-        assertThat(get("/actuator/health/readiness").statusCode()).isEqualTo(200);
+        assertThat(get("/actuator/health/readiness").statusCode()).isEqualTo(503);
     }
 
     @Test

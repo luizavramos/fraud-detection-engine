@@ -2,6 +2,9 @@ package br.com.motorfraude.receiver.infrastructure.config;
 
 import br.com.motorfraude.receiver.adapters.out.kafka.KafkaCommandPublisher;
 import br.com.motorfraude.receiver.application.port.out.CommandPublisher;
+import br.com.motorfraude.receiver.infrastructure.observability.KafkaProducerHealthIndicator;
+import br.com.motorfraude.receiver.infrastructure.observability.TimedCommandPublisher;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,8 +47,16 @@ public class KafkaConfig {
     }
 
     @Bean
-    CommandPublisher commandPublisher(Producer<String, byte[]> producer, ReceiverProperties properties, Clock clock) {
+    CommandPublisher commandPublisher(
+            Producer<String, byte[]> producer, ReceiverProperties properties, Clock clock, MeterRegistry registry) {
         var kafka = properties.kafka();
-        return new KafkaCommandPublisher(producer, kafka.topic(), clock, kafka.publishTimeout());
+        var publisher = new KafkaCommandPublisher(producer, kafka.topic(), clock, kafka.publishTimeout());
+        return new TimedCommandPublisher(publisher, registry);
+    }
+
+    /** Entra no grupo de readiness (application.yml) com o nome {@code kafkaProducer}. */
+    @Bean
+    KafkaProducerHealthIndicator kafkaProducerHealthIndicator(Producer<String, byte[]> producer, ReceiverProperties properties) {
+        return new KafkaProducerHealthIndicator(producer, properties.kafka().topic());
     }
 }

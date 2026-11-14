@@ -184,7 +184,7 @@ services:
     ports:
       - "${RECEIVER_HOST_PORT:-8081}:8081"
     environment:
-      # Nomes de propriedade definitivos entram com a T111 (Kafka) e a T114 (Redis)
+      # Relaxed binding de receiver.kafka.bootstrap-servers e receiver.redis.host|port (application.yml)
       RECEIVER_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       RECEIVER_REDIS_HOST: redis
       RECEIVER_REDIS_PORT: 6379

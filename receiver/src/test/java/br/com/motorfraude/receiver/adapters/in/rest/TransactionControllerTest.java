@@ -12,6 +12,7 @@ import br.com.motorfraude.receiver.application.port.out.DuplicateGuard.Reservati
 import br.com.motorfraude.receiver.fakes.FakeCommandPublisher;
 import br.com.motorfraude.receiver.fakes.FakeDuplicateGuard;
 import br.com.motorfraude.receiver.fakes.FakeRateLimiter;
+import br.com.motorfraude.receiver.fakes.FakeRequestMetrics;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
@@ -36,6 +37,7 @@ class TransactionControllerTest {
     private final FakeRateLimiter rateLimiter = new FakeRateLimiter();
     private final FakeDuplicateGuard guard = new FakeDuplicateGuard();
     private final FakeCommandPublisher publisher = new FakeCommandPublisher();
+    private final FakeRequestMetrics metrics = new FakeRequestMetrics();
     private MockMvc mvc;
 
     @BeforeEach
@@ -46,7 +48,8 @@ class TransactionControllerTest {
                 new RequestValidator(),
                 new AllowedClients(Set.of("pix-core", "ted-core")),
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                new TraceContextResolver(() -> null));
+                new TraceContextResolver(() -> null),
+                metrics);
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -260,6 +263,53 @@ class TransactionControllerTest {
         assertProblem(send(validBody()), 429);
         send(validBody()).andExpect(header().string("Retry-After", "1"));
         assertThat(publisher.published).isEmpty();
+        assertThat(guard.reserved).isEmpty();
+    }
+
+    @Test
+    @DisplayName("T117: origem acima do limite com corpo inválido → 429, não 400 (o limite vem antes de validar)")
+    void rateLimitAntesDaValidacao() throws Exception {
+        rateLimiter.allow = false;
+
+        assertProblem(send("{ isto nao e json"), 429);
+        assertProblem(send(validBody().replace("15000", "0")), 429);
+    }
+
+    @Test
+    @DisplayName("cada requisição consulta o limitador exatamente uma vez (sem contar em dobro)")
+    void umaConsultaPorRequisicao() throws Exception {
+        send(validBody()).andExpect(status().isAccepted());
+
+        assertThat(rateLimiter.asked).containsExactly("pix-core");
+    }
+
+    @Test
+    @DisplayName("T119: o controller reporta o desfecho de cada requisição; origem desconhecida vira o label 'unknown'")
+    void metricasPorDesfecho() throws Exception {
+        send(validBody());                                                       // ACCEPTED
+        guard.nextReservation = Reservation.ALREADY_SEEN;
+        send(validBody());                                                       // DUPLICATE
+        guard.nextReservation = Reservation.IN_FLIGHT;
+        send(validBody());                                                       // IN_FLIGHT
+        guard.nextReservation = Reservation.RESERVED;
+        publisher.failing = true;
+        send(validBody());                                                       // UNAVAILABLE
+        publisher.failing = false;
+        send("{ isto nao e json");                                               // REJECTED
+        send("{\"x\":\"" + "a".repeat(16 * 1024) + "\"}");                       // TOO_LARGE
+        mvc.perform(request(validBody()).header("X-Client-Id", "intruso"));      // UNAUTHORIZED
+        rateLimiter.allow = false;
+        send(validBody());                                                       // RATE_LIMITED
+
+        assertThat(metrics.recorded).containsExactly(
+                new FakeRequestMetrics.Recorded(Outcome.ACCEPTED, "pix-core"),
+                new FakeRequestMetrics.Recorded(Outcome.DUPLICATE, "pix-core"),
+                new FakeRequestMetrics.Recorded(Outcome.IN_FLIGHT, "pix-core"),
+                new FakeRequestMetrics.Recorded(Outcome.UNAVAILABLE, "pix-core"),
+                new FakeRequestMetrics.Recorded(Outcome.REJECTED, "pix-core"),
+                new FakeRequestMetrics.Recorded(Outcome.TOO_LARGE, "pix-core"),
+                new FakeRequestMetrics.Recorded(Outcome.UNAUTHORIZED, "unknown"),
+                new FakeRequestMetrics.Recorded(Outcome.RATE_LIMITED, "pix-core"));
     }
 
     @Test

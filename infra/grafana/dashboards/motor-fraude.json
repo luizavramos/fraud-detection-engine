@@ -4,7 +4,7 @@
   "tags": ["motor-fraude"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": true,
   "refresh": "10s",
   "time": { "from": "now-1h", "to": "now" },
@@ -13,11 +13,122 @@
       "id": 1,
       "type": "text",
       "title": "Motor de fraude",
-      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
       "options": {
         "mode": "markdown",
-        "content": "Dashboard vazio de propósito. Os painéis entram junto com cada serviço (specs 001–006): RPS por status do receiver, p99 fim a fim do motor, alertas por severidade, lag de consumo, entregas por canal."
+        "content": "Painéis entram junto com cada serviço (specs 001–006). Já disponível: **Receiver** (spec 001). Ainda por vir: p99 fim a fim do motor, alertas por severidade, lag de consumo, entregas por canal."
       }
+    },
+    {
+      "id": 2,
+      "type": "row",
+      "title": "Receiver (spec 001)",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 3 },
+      "panels": []
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Requisições por segundo, por desfecho",
+      "description": "ACCEPTED e DUPLICATE respondem 202. IN_FLIGHT e UNAVAILABLE respondem 503, RATE_LIMITED 429, REJECTED 400, UNAUTHORIZED 401, TOO_LARGE 413.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 10, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (status) (rate(receiver_requests_total[1m]))",
+          "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "p99 da publicação no Kafka (até o ack)",
+      "description": "Principal componente da latência do receiver. Meta do SC-001: p99 do receiver até 30 ms.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "fillOpacity": 0 },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.03 }] }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(receiver_publish_seconds_bucket[1m])))",
+          "legendFormat": "p99"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(receiver_publish_seconds_bucket[1m])))",
+          "legendFormat": "p50"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Duplicatas barradas e reenvios em andamento (por segundo)",
+      "description": "DUPLICATE: reenvio depois do ack do Kafka. IN_FLIGHT: reenvio enquanto a primeira ainda publicava.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(receiver_duplicates_blocked_total[1m]))",
+          "legendFormat": "duplicatas barradas"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(receiver_in_flight_total[1m]))",
+          "legendFormat": "em andamento"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Fail-open do Redis, por motivo (por segundo)",
+      "description": "Redis lento (timeout de 5 ms) ou fora do ar: o receiver segue sem o escudo e o motor resolve a duplicata. Falhas de confirm e release também aparecem aqui.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (reason) (rate(receiver_redis_failopen_total[1m]))",
+          "legendFormat": "fail-open: {{reason}}"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(receiver_redis_confirm_failures_total[1m]))",
+          "legendFormat": "falha no confirm"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(receiver_redis_release_failures_total[1m]))",
+          "legendFormat": "falha no release"
+        }
+      ]
     }
   ]
 }

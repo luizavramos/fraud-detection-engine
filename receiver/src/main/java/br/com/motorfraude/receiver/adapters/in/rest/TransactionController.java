@@ -24,31 +24,41 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Entrada HTTP do receiver (spec 001, plan §4). Ordem: origem → corpo (até 16 KB) → contrato → invariantes de domínio
- * → caso de uso. Erros seguem o formato Problem Details (RFC 9457).
+ * Entrada HTTP do receiver (spec 001, plan §4). Ordem: origem → limite de taxa → corpo (até 16 KB) → contrato →
+ * invariantes de domínio → caso de uso. O limite vem antes de ler o corpo: lixo também é limitado. Erros seguem o
+ * formato Problem Details (RFC 9457). Todo desfecho é reportado às métricas.
  */
 @RestController
 public class TransactionController {
 
+    /** Label usado nas métricas para qualquer origem que não esteja na lista: evita cardinalidade ilimitada. */
+    public static final String UNKNOWN_CLIENT = "unknown";
+
     static final int MAX_BODY_BYTES = 16 * 1024;
+
+    /** Resposta HTTP junto com o desfecho que a originou. */
+    private record Reply(Outcome outcome, ResponseEntity<Map<String, Object>> response) {}
 
     private final ReceiveTransactionUseCase useCase;
     private final RequestValidator validator;
     private final AllowedClients allowedClients;
     private final Clock clock;
     private final TraceContextResolver traceResolver;
+    private final RequestMetrics metrics;
 
     public TransactionController(
             ReceiveTransactionUseCase useCase,
             RequestValidator validator,
             AllowedClients allowedClients,
             Clock clock,
-            TraceContextResolver traceResolver) {
+            TraceContextResolver traceResolver,
+            RequestMetrics metrics) {
         this.useCase = useCase;
         this.validator = validator;
         this.allowedClients = allowedClients;
         this.clock = clock;
         this.traceResolver = traceResolver;
+        this.metrics = metrics;
     }
 
     @PostMapping(path = "/v1/transactions:evaluate", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -59,13 +69,26 @@ public class TransactionController {
             @RequestHeader(name = "traceparent", required = false) String traceparent)
             throws IOException {
 
+        var reply = process(request, clientId, idempotencyKey, traceparent);
+        metrics.record(reply.outcome(), allowedClients.contains(clientId) ? clientId : UNKNOWN_CLIENT);
+        return reply.response();
+    }
+
+    private Reply process(HttpServletRequest request, String clientId, String idempotencyKey, String traceparent)
+            throws IOException {
+
         if (!allowedClients.contains(clientId)) {
-            return problem(HttpStatus.UNAUTHORIZED, "Origem não autorizada", "X-Client-Id ausente ou desconhecido", List.of());
+            return problem(Outcome.UNAUTHORIZED, HttpStatus.UNAUTHORIZED, "Origem não autorizada",
+                    "X-Client-Id ausente ou desconhecido", List.of());
+        }
+        if (!useCase.admit(clientId)) {
+            return retryLater(Outcome.RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS, "Limite de requisições excedido",
+                    "A origem excedeu o limite de requisições; tente novamente");
         }
 
         var body = readBody(request);
         if (body == null) {
-            return problem(HttpStatus.PAYLOAD_TOO_LARGE, "Corpo grande demais",
+            return problem(Outcome.TOO_LARGE, HttpStatus.PAYLOAD_TOO_LARGE, "Corpo grande demais",
                     "O corpo deve ter no máximo " + MAX_BODY_BYTES + " bytes", List.of());
         }
 
@@ -100,8 +123,7 @@ public class TransactionController {
             return invalid(List.of("corpo: não corresponde ao contrato"));
         }
 
-        var result = useCase.execute(command, clientId, traceResolver.resolve(traceparent));
-        return respond(result);
+        return respond(useCase.execute(command, clientId, traceResolver.resolve(traceparent)));
     }
 
     /** Lê no máximo o limite + 1 byte: nunca carrega um corpo gigante na memória. Nulo se excedeu. */
@@ -113,44 +135,45 @@ public class TransactionController {
         return bytes.length > MAX_BODY_BYTES ? null : bytes;
     }
 
-    private ResponseEntity<Map<String, Object>> respond(ReceiveResult result) {
+    private Reply respond(ReceiveResult result) {
         return switch (result) {
-            case ReceiveResult.Accepted accepted -> accepted(accepted.transactionId(), "ACCEPTED");
-            case ReceiveResult.Duplicate duplicate -> accepted(duplicate.transactionId(), "DUPLICATE");
+            case ReceiveResult.Accepted accepted -> accepted(Outcome.ACCEPTED, accepted.transactionId(), "ACCEPTED");
+            case ReceiveResult.Duplicate duplicate -> accepted(Outcome.DUPLICATE, duplicate.transactionId(), "DUPLICATE");
             case ReceiveResult.RateLimited limited ->
-                retryLater(HttpStatus.TOO_MANY_REQUESTS, "Limite de requisições excedido",
+                retryLater(Outcome.RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS, "Limite de requisições excedido",
                         "A origem excedeu o limite de requisições; tente novamente");
             case ReceiveResult.InFlight inFlight ->
-                retryLater(HttpStatus.SERVICE_UNAVAILABLE, "Transação em andamento",
+                retryLater(Outcome.IN_FLIGHT, HttpStatus.SERVICE_UNAVAILABLE, "Transação em andamento",
                         "A mesma transação ainda está sendo processada; tente novamente");
             case ReceiveResult.Unavailable unavailable ->
-                retryLater(HttpStatus.SERVICE_UNAVAILABLE, "Serviço indisponível",
+                retryLater(Outcome.UNAVAILABLE, HttpStatus.SERVICE_UNAVAILABLE, "Serviço indisponível",
                         "A transação não foi aceita; tente novamente");
             case ReceiveResult.Rejected rejected -> invalid(rejected.errors());
         };
     }
 
-    private static ResponseEntity<Map<String, Object>> accepted(String transactionId, String status) {
+    private static Reply accepted(Outcome outcome, String transactionId, String status) {
         var payload = new LinkedHashMap<String, Object>();
         payload.put("transactionId", transactionId);
         payload.put("status", status);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).contentType(MediaType.APPLICATION_JSON).body(payload);
+        return new Reply(outcome,
+                ResponseEntity.status(HttpStatus.ACCEPTED).contentType(MediaType.APPLICATION_JSON).body(payload));
     }
 
-    private static ResponseEntity<Map<String, Object>> invalid(List<String> errors) {
-        return problem(HttpStatus.BAD_REQUEST, "Requisição inválida", "O corpo ou os headers não respeitam o contrato", errors);
+    private static Reply invalid(List<String> errors) {
+        return problem(Outcome.REJECTED, HttpStatus.BAD_REQUEST, "Requisição inválida",
+                "O corpo ou os headers não respeitam o contrato", errors);
     }
 
-    private static ResponseEntity<Map<String, Object>> retryLater(HttpStatus status, String title, String detail) {
-        var response = problem(status, title, detail, List.of());
+    private static Reply retryLater(Outcome outcome, HttpStatus status, String title, String detail) {
+        var response = problem(outcome, status, title, detail, List.of()).response();
         var headers = new HttpHeaders();
         headers.putAll(response.getHeaders());
         headers.set(HttpHeaders.RETRY_AFTER, "1");
-        return new ResponseEntity<>(response.getBody(), headers, status);
+        return new Reply(outcome, new ResponseEntity<>(response.getBody(), headers, status));
     }
 
-    private static ResponseEntity<Map<String, Object>> problem(
-            HttpStatus status, String title, String detail, List<String> errors) {
+    private static Reply problem(Outcome outcome, HttpStatus status, String title, String detail, List<String> errors) {
         var body = new LinkedHashMap<String, Object>();
         body.put("type", "about:blank");
         body.put("title", title);
@@ -159,6 +182,7 @@ public class TransactionController {
         if (!errors.isEmpty()) {
             body.put("errors", errors);
         }
-        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(body);
+        return new Reply(outcome,
+                ResponseEntity.status(status).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(body));
     }
 }

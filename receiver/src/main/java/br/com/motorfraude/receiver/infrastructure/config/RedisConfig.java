@@ -3,6 +3,7 @@ package br.com.motorfraude.receiver.infrastructure.config;
 import br.com.motorfraude.receiver.adapters.out.redis.RedisDuplicateGuard;
 import br.com.motorfraude.receiver.adapters.out.redis.ResilientRedisConnection;
 import br.com.motorfraude.receiver.application.port.out.DuplicateGuard;
+import br.com.motorfraude.receiver.infrastructure.observability.ReceiverMetrics;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,8 +18,8 @@ public class RedisConfig {
     }
 
     @Bean
-    DuplicateGuard duplicateGuard(ResilientRedisConnection connection, ReceiverProperties properties) {
+    DuplicateGuard duplicateGuard(ResilientRedisConnection connection, ReceiverProperties properties, ReceiverMetrics metrics) {
         var redis = properties.redis();
-        return new RedisDuplicateGuard(connection, redis.pendingTtl(), redis.doneTtl(), RedisDuplicateGuard.Listener.NONE);
+        return new RedisDuplicateGuard(connection, redis.pendingTtl(), redis.doneTtl(), metrics);
     }
 }

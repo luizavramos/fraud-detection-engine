@@ -45,6 +45,11 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
         </dependency>
+        <!-- Rate limit por origem, em memória (plan 001 §2) -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-core</artifactId>
+        </dependency>
         <!-- Redis: Lettuce direto (sem Spring Data), para controlar timeout de 5 ms e fail-open -->
         <dependency>
             <groupId>io.lettuce</groupId>

@@ -14,6 +14,8 @@ server:
 receiver:
   # Origens autorizadas (FR-007a). Em produção, a origem vem do certificado mTLS [DOC]
   clients: pix-core,ted-core,boleto-core,card-core
+  # Por origem e por instância; o limite global aproximado é este valor x número de instâncias
+  rate-limit-per-second: ${RECEIVER_RATE_LIMIT_PER_SECOND:20000}
   kafka:
     bootstrap-servers: localhost:9092
     topic: transaction-commands.v1
@@ -34,6 +36,11 @@ management:
     health:
       probes:
         enabled: true        # /actuator/health/liveness e /readiness (constituição VII)
+      show-components: always
+      group:
+        readiness:
+          # Pronto = produtor Kafka com metadados. O Redis fica de fora: o receiver é fail-open (plan 001 §5)
+          include: readinessState,kafkaProducer
   tracing:
     sampling:
       probability: 1.0       # local: tudo; em produção a amostragem é reduzida

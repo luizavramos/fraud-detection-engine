@@ -9,6 +9,8 @@ import br.com.motorfraude.receiver.application.ReceiveTransactionUseCase;
 import br.com.motorfraude.receiver.application.port.out.CommandPublisher;
 import br.com.motorfraude.receiver.application.port.out.DuplicateGuard;
 import br.com.motorfraude.receiver.application.port.out.RateLimiter;
+import br.com.motorfraude.receiver.infrastructure.observability.ReceiverMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.tracing.Tracer;
 import java.time.Clock;
 import java.util.Set;
@@ -28,6 +30,12 @@ public class ReceiverConfig {
     @Bean
     AllowedClients allowedClients(ReceiverProperties properties) {
         return new AllowedClients(Set.copyOf(properties.clients()));
+    }
+
+    /** Um objeto só: métricas das requisições (adapter REST) e dos eventos do Redis (guard). */
+    @Bean
+    ReceiverMetrics receiverMetrics(MeterRegistry registry) {
+        return new ReceiverMetrics(registry);
     }
 
     @Bean

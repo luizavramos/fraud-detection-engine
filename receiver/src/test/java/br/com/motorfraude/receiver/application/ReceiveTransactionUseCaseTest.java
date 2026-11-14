@@ -92,16 +92,27 @@ class ReceiveTransactionUseCaseTest {
     }
 
     @Test
-    @DisplayName("rate limit e a primeira checagem: RateLimited sem tocar no Redis nem no Kafka")
-    void rateLimit() {
+    @DisplayName("admit: origem dentro do limite é admitida; acima do limite, não (antes de qualquer outra coisa)")
+    void admissao() {
+        assertThat(useCase.admit(CLIENT)).isTrue();
+
+        rateLimiter.allow = false;
+
+        assertThat(useCase.admit(CLIENT)).isFalse();
+        assertThat(rateLimiter.asked).containsExactly(CLIENT, CLIENT);
+        assertThat(guard.reserved).isEmpty();
+        assertThat(publisher.published).isEmpty();
+    }
+
+    @Test
+    @DisplayName("execute não consulta o limitador: o limite é cobrado uma vez, na admissão, antes de ler o corpo")
+    void executeNaoCobraLimite() {
         rateLimiter.allow = false;
 
         var result = useCase.execute(command, CLIENT, TRACE);
 
-        assertThat(result).isEqualTo(new ReceiveResult.RateLimited(CLIENT));
-        assertThat(rateLimiter.asked).containsExactly(CLIENT);
-        assertThat(guard.reserved).isEmpty();
-        assertThat(publisher.published).isEmpty();
+        assertThat(result).isEqualTo(new ReceiveResult.Accepted("tx_20261113_0001"));
+        assertThat(rateLimiter.asked).isEmpty();
     }
 
     @Test

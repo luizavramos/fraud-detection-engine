@@ -72,6 +72,17 @@ class TransactionFlowIT {
     }
 
     @Test
+    @DisplayName("T120: com Kafka e sem Redis o serviço está pronto (200): o Redis não entra na readiness, o receiver é fail-open")
+    void prontoSemRedis() throws Exception {
+        var request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/actuator/health/readiness")).GET().build();
+
+        var response = http.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("kafkaProducer").doesNotContain("redis");
+    }
+
+    @Test
     @DisplayName("H1+H2+T112: válida vira 202 e chega ao tópico com chave, headers e trace; inválida não chega")
     void aceitaEPublicaEBarraLixo() throws Exception {
         var invalid = post(body("tx_flow_invalida_01", 0), "tx_flow_invalida_01");

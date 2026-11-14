@@ -93,5 +93,5 @@ previsto:
 | Spec | Estado |
 |---|---|
 | 000 Plataforma e contratos | Fases 1–4 e fechamento prontos; gerador de carga (Fase 5) adiado |
-| 001 Receiver | Em andamento: Fases 1 a 4 prontas (aceita, publica, barra duplicatas, fail-open); faltam rate limit e observabilidade |
+| 001 Receiver | Fases 1 a 6 prontas (aceita, publica, duplicatas, fail-open, rate limit, métricas, readiness, painel); falta só medir o p99 com o gerador de carga (T122) |
 | 002–006 | Não iniciadas |

@@ -29,13 +29,13 @@ Base de caminhos: `receiver/src/{main,test}/java/br/com/motorfraude/receiver/`
 - [x] T116 **Teste de concorrência:** 50 POSTs simultâneos com o mesmo `transactionId` → 1 publicação; os demais recebem `IN_FLIGHT` ou `DUPLICATE`, nenhum `ACCEPTED`
 
 ## Fase 5 — H4: rate limit
-- [ ] T117 **Teste** do `Bucket4jRateLimiter` (excede → false; origens isoladas) e do filtro: 429 com `Retry-After` antes de validar o corpo (corpo inválido de origem acima do limite → 429, não 400) — limite baixo (5 req/s) nos testes
-- [ ] T118 Implementar `Bucket4jRateLimiter` (e **remover** o `RateLimiter` provisório de `TemporaryPortsConfig`; o filtro passa a limitar antes do corpo, então tirar a chamada duplicada de `tryAcquire` do caso de uso ou do filtro) + `RateLimitConfig` (limite via `RECEIVER_RATE_LIMIT_PER_SECOND`, padrão 20000; lista `receiver.clients`) + filtro de origem/rate limit antes da leitura do corpo + resposta 429 com `Retry-After`
+- [x] T117 **Teste** do `Bucket4jRateLimiter` (excede → false; origens isoladas) e do filtro: 429 com `Retry-After` antes de validar o corpo (corpo inválido de origem acima do limite → 429, não 400) — limite baixo (5 req/s) nos testes
+- [x] T118 Implementar `Bucket4jRateLimiter` (e **remover** o `RateLimiter` provisório de `TemporaryPortsConfig`; o filtro passa a limitar antes do corpo, então tirar a chamada duplicada de `tryAcquire` do caso de uso ou do filtro) + `RateLimitConfig` (limite via `RECEIVER_RATE_LIMIT_PER_SECOND`, padrão 20000; lista `receiver.clients`) + filtro de origem/rate limit antes da leitura do corpo + resposta 429 com `Retry-After`
 
 ## Fase 6 — Observabilidade e acabamento
-- [ ] T119 `ReceiverMetrics` com as métricas do plan §5 (inclui `in_flight` e `confirm_failures`) + teste de que os contadores aumentam
-- [ ] T120 Readiness: health indicator do produtor Kafka (sem o Redis)
-- [ ] T121 Painel do receiver no dashboard Grafana (RPS por status, duplicatas, fail-open, p99 da publicação)
+- [x] T119 `ReceiverMetrics` com as métricas do plan §5 (inclui `in_flight` e `confirm_failures`) + teste de que os contadores aumentam
+- [x] T120 Readiness: health indicator do produtor Kafka (sem o Redis)
+- [x] T121 Painel do receiver no dashboard Grafana (RPS por status, duplicatas, fail-open, p99 da publicação)
 - [ ] T122 (requer a Fase 5 da 000, o gerador de carga) Rodar `load-generator --tps 8000 --duration 120s` e registrar no README do serviço o p99 e o TPS alcançados (SC-001)
 
 ## Dependências
