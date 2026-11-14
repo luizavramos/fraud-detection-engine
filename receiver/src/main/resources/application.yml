@@ -11,6 +11,14 @@ spring:
 server:
   port: 8081
 
+receiver:
+  # Origens autorizadas (FR-007a). Em produção, a origem vem do certificado mTLS [DOC]
+  clients: pix-core,ted-core,boleto-core,card-core
+  kafka:
+    bootstrap-servers: localhost:9092
+    topic: transaction-commands.v1
+    publish-timeout: 2500ms   # um pouco acima do delivery.timeout.ms (2 s) do produtor
+
 management:
   endpoints:
     web:
