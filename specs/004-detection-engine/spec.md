@@ -51,9 +51,9 @@ Como responsável pela resiliência, quero que o motor use uma cópia local do p
 Como analista, quero que uma regra ativada na gestão de regras passe a valer no motor sem reiniciar nada.
 
 **Cenários de aceite**
-1. **Given** o motor com o conjunto 41, **When** a gestão publica o 42, **Then** em poucos segundos (meta ≤ 10 s) as decisões passam a registrar `ruleSetVersion=42`.
+1. **Given** o motor com o conjunto 41, **When** a gestão publica o 42 (evento no `rule-sets.v1`, via outbox e Debezium), **Then** em poucos segundos (meta ≤ 35 s de ponta a ponta, da ativação na API à decisão) as decisões passam a registrar `ruleSetVersion=42`.
 2. **Given** o conjunto 42 chega com uma regra que não compila, **When** o motor tenta carregar, **Then** mantém o 41, registra o erro e incrementa `engine_ruleset_load_failures_total`.
-3. **Given** a gestão de regras está fora e o motor reinicia, **When** sobe, **Then** carrega o último conjunto salvo em disco e fica pronto.
+3. **Given** a gestão de regras está fora e o motor reinicia, **When** sobe, **Then** lê o último evento do tópico compactado `rule-sets.v1` (que já é o snapshot; não há cópia em disco) e fica pronto.
 4. **Given** o tópico `rule-sets.v1` está vazio (ambiente novo), **When** o motor sobe, **Then** a readiness falha e ele não processa transações.
 
 ### H6 — Não duplicar nem perder sob falha (P1)

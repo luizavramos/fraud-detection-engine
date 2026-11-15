@@ -163,3 +163,9 @@ O dashboard Grafana do motor mostra: p99 fim a fim × SLO, decisões por severid
 - **Limpeza do `seen-tx`:** punctuator de relógio de parede a cada 5 min, varredura incremental (50 mil chaves por rodada, com cursor) e retenção de 24 h.
 - **`platform-streams`:** `StreamsAppBootstrap.create(settings, propriedadesExtras, topologia)` aceita propriedades do app (handler de DLQ, `commit.interval.ms=100`), recusando as reservadas (`processing.guarantee`, id da aplicação, servidores, estado e `group.instance.id`).
 - **`DetectionEngineApp`:** só inicia a topologia quando há conjunto de regras (a prontidão também exige); até o `KafkaRuleSetProvider` (Fase 5) o `main` fica aguardando.
+
+## 6A. Decisões da implementação (Fase 5)
+- **Prontidão só no fim do tópico:** ao subir, o provedor registra o offset final de `rule-sets.v1` e só fica pronto (`ready`) depois de ler até ele; sem isso uma instância nova ficava pronta ao aplicar o primeiro evento e decidia por um instante com uma versão antiga. Foi pego pelo teste com Kafka real. Tópico vazio: `ready` só depois que chegar o primeiro evento.
+- **Estrutura:** `RuleSetLoader` (puro: valida contra `rule-set.v1`, ignora versão menor ou igual, compila com o kernel, troca de forma atômica; falhas por motivo `invalid`, `compile` ou `kafka`) e `KafkaRuleSetProvider` (consumidor sem grupo, partição 0, lê do início; em thread própria; falha do Kafka mantém o conjunto e tenta de novo; na partida, se o Kafka estiver fora, repete a inicialização). `RuleSetMetrics` é a porta; o adaptador Micrometer entra na Fase 6.
+- **`pollOnce` e `initialize` públicos** para os testes dirigirem o consumidor sem thread (com `MockConsumer`).
+- **Spec H5 corrigida:** o cenário 3 falava em "conjunto salvo em disco" (herança da versão por polling); com o ADR-13 por evento o tópico compactado é o snapshot, e a meta de ponta a ponta é ≤ 35 s.
