@@ -36,7 +36,7 @@ Base de caminhos: `receiver/src/{main,test}/java/br/com/motorfraude/receiver/`
 - [x] T119 `ReceiverMetrics` com as métricas do plan §5 (inclui `in_flight` e `confirm_failures`) + teste de que os contadores aumentam
 - [x] T120 Readiness: health indicator do produtor Kafka (sem o Redis)
 - [x] T121 Painel do receiver no dashboard Grafana (RPS por status, duplicatas, fail-open, p99 da publicação)
-- [x] T122 Rodar o gerador no receiver e registrar o p99 e o TPS alcançados em `docs/resultados-carga.md`: **local, em 300 TPS** (escala de referência: p99 ~100 ms, escada de 100 a 800 TPS no documento). **Os 8.000 TPS do SC-001 não serão medidos** (decisão: sem medição na nuvem); o documento diz isso e não extrapola
+- [x] T122 Rodar o gerador no receiver e registrar o p99 e o TPS alcançados em `docs/resultados-carga.md`: **local, em 300 TPS** (escala de referência: p99 ~100 ms, escada de 100 a 800 TPS no documento). **Os 8.000 TPS do SC-001 ficam como etapa futura, na nuvem**, fora desta entrega; o documento diz isso e não extrapola
 
 ## Dependências
 T101 → Fase 2 → Fase 3 → (Fases 4 e 5 em paralelo) → Fase 6.

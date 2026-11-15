@@ -3,8 +3,7 @@
 Medições do receiver (spec 001) com o gerador de carga (spec 000, Fase 5). O motor (spec 004) acrescenta as suas.
 
 ## Escala medida e o que não foi medido
-O case pede 8.000 TPS de média e 25.000 de pico. **Essas taxas não foram medidas e não serão: o projeto não tem medição na
-nuvem.** Localmente tudo divide os mesmos núcleos (o gerador chega a gastar 3,4 núcleos), então o que se mede aqui é o
+O case pede 8.000 TPS de média e 25.000 de pico. **Essas taxas não foram medidas nesta entrega: a medição na nuvem é uma etapa futura.** Localmente tudo divide os mesmos núcleos (o gerador chega a gastar 3,4 núcleos), então o que se mede aqui é o
 comportamento numa **escala de referência de 300 TPS**, com 500 TPS como teto confortável.
 
 **Este documento não comprova os requisitos de 8.000 e 25.000 TPS.** Não verificados: 8.000 TPS sustentados por 5 min
@@ -40,7 +39,7 @@ na conta. O receiver só responde `202` depois do ack do Kafka, então o p99 inc
    um alvo trivial) ficaram confundidas e **foram descartadas**. A escada acima foi refeita com espera entre as rodadas.
 3. **Contenção sob oversubscrição (hipótese, não confirmada).** Num perfil JFR do receiver (rodada já contaminada), 31,6 s de
    contenção de monitor em 40 s, no `ConnectionHandler` do Tomcat e no `KafkaProducer.doSend`. Com threads virtuais, bloquear
-   dentro de `synchronized` prende o núcleo de execução. Não confirmada e sem plano de confirmação: exigiria medir com o gerador em outra máquina.
+   dentro de `synchronized` prende o núcleo de execução. Não confirmada: exigiria medir com o gerador em outra máquina (etapa futura, na nuvem).
 4. **`503` não prova que nada foi gravado** (ver plano da spec 001, §8): o Kafka pode gravar depois do timeout.
 5. **Partida a frio pesa.** O p99 do primeiro degrau (2,4 s) contra 71 a 103 ms nos seguintes. Por isso `--warmup`.
 
@@ -72,7 +71,7 @@ Meta da spec 004 (SC-001): p99 ≤ 500 ms, com meta interna de ~225 ms.
   conexões) esgotou as portas efêmeras do Windows: 100 % de erros e ~15 mil transações que o Kafka gravou mesmo assim, depois
   de o receiver ter respondido timeout. O motor gastou minutos consumindo esse atraso, e a primeira medição depois dela deu
   p50 e p99 no último bucket (5 s); foi descartada. O limite local é de **cerca de 9 mil conexões por rodada**.
-- **Não verificado, e sem plano de medir:** 8.000 TPS por 5 min e o p99 fim a fim a 8.000 e 25.000 TPS (SC-001 da spec 004), que
+- **Não verificado agora (etapa futura, na nuvem):** 8.000 TPS por 5 min e o p99 fim a fim a 8.000 e 25.000 TPS (SC-001 da spec 004), que
   exigiriam máquinas separadas (várias instâncias do motor, partições e disco de produção), e o impacto de um rebalance durante a carga.
 
 ### Como reproduzir

@@ -56,7 +56,7 @@ Como candidato que precisa provar os números do case, quero um gerador de carga
 
 ## Casos de borda
 - Porta ocupada na máquina do avaliador: as portas ficam configuráveis por `.env`.
-- Máquina com pouca memória: o compose usa limites modestos (Kafka 1 GB, Postgres 512 MB). Os 8.000 e 25.000 TPS não serão medidos (sem medição na nuvem); a escala medida é a de referência local, de 300 TPS.
+- Máquina com pouca memória: o compose usa limites modestos (Kafka 1 GB, Postgres 512 MB). Os 8.000 e 25.000 TPS ficam como etapa futura, na nuvem (não medidos nesta entrega); a escala medida é a de referência local, de 300 TPS.
 
 ## Requisitos funcionais
 - **FR-001:** o repositório DEVE ser um projeto Maven multi-módulo, compilável com `./mvnw verify` (testes unitários e de integração).
@@ -74,7 +74,7 @@ Como candidato que precisa provar os números do case, quero um gerador de carga
 ## Critérios de sucesso
 - **SC-001:** do clone ao ambiente no ar em ≤ 5 comandos e ≤ 5 minutos.
 - **SC-002:** 100% dos contratos com schema, record Java e ao menos um exemplo válido e um inválido testados.
-- **SC-003:** o gerador sustenta 8.000 TPS por 5 minutos numa máquina de 8 vCPU **(não verificado: sem medição na nuvem; localmente a escala de referência é 300 TPS, ver `docs/resultados-carga.md`)**.
+- **SC-003:** o gerador sustenta 8.000 TPS por 5 minutos numa máquina de 8 vCPU **(não verificado nesta entrega: medição na nuvem é etapa futura; localmente a escala de referência é 300 TPS, ver `docs/resultados-carga.md`)**.
 
 ## Premissas
 - O avaliador tem Docker e JDK 21.

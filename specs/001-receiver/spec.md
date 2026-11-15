@@ -1,6 +1,6 @@
 # Spec 001 — Receiver
 
-**Status:** implementada; medida localmente a 300 TPS (p99 ~100 ms); os 8.000 TPS do SC-001 não foram verificados e não serão (sem medição na nuvem) · **Prioridade:** P1 · **Depende de:** 000
+**Status:** implementada; medida localmente a 300 TPS (p99 ~100 ms); os 8.000 TPS do SC-001 não foram verificados nesta entrega (medição na nuvem é etapa futura) · **Prioridade:** P1 · **Depende de:** 000
 **Passos no desenho:** 1, 1.1, 1.2, 1.3, 1.4
 
 ## Contexto
@@ -71,7 +71,7 @@ Como sistema de pagamento, quero saber quando a transação **não** foi aceita,
 `EvaluateTransaction` (contrato 000), `ReceiveResult` (ACCEPTED, DUPLICATE, IN_FLIGHT, REJECTED, RATE_LIMITED, UNAVAILABLE).
 
 ## Critérios de sucesso
-- **SC-001:** p99 do receiver (requisição → resposta) ≤ 30 ms a 8.000 TPS, com receiver, Kafka e gerador em máquinas separadas **(não verificado: sem medição na nuvem)**. Localmente, a escala de referência é 300 TPS (p99 ~100 ms) (ver `docs/resultados-carga.md`).
+- **SC-001:** p99 do receiver (requisição → resposta) ≤ 30 ms a 8.000 TPS, com receiver, Kafka e gerador em máquinas separadas **(não verificado nesta entrega: etapa futura, na nuvem)**. Localmente, a escala de referência é 300 TPS (p99 ~100 ms) (ver `docs/resultados-carga.md`).
 - **SC-002:** 0 transações aceitas (`202 ACCEPTED`) que não estejam no tópico, num teste com o Kafka sendo derrubado durante a carga.
 - **SC-003:** 100% dos reenvios dentro de 10 min com o Redis no ar, depois da confirmação do Kafka, respondem `DUPLICATE` sem publicar; reenvios durante a publicação respondem `503 IN_FLIGHT`, nunca `DUPLICATE`.
 

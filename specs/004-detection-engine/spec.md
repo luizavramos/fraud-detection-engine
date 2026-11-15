@@ -1,6 +1,6 @@
 # Spec 004 — Motor de detecção
 
-**Status:** implementada e verificada localmente (a 300 TPS); os 8.000 e 25.000 TPS não foram verificados e não serão (sem medição na nuvem) · **Prioridade:** P1 (núcleo) · **Depende de:** 000; usa o `rules-kernel` (002, Fase 2) e os tópicos de 003 e 006
+**Status:** implementada e verificada localmente (a 300 TPS); os 8.000 e 25.000 TPS não foram verificados nesta entrega (etapa futura, na nuvem) · **Prioridade:** P1 (núcleo) · **Depende de:** 000; usa o `rules-kernel` (002, Fase 2) e os tópicos de 003 e 006
 **Passos no desenho:** 3, 3.1, 3.2
 
 ## Contexto
@@ -101,7 +101,7 @@ Como responsável pelo go-live, quero popular o histórico de 90 dias antes de l
 `TransactionCommand`, `AccountFeatures` (buckets + conjuntos), `FeatureSnapshot`, `CustomerProfile`, `Decision`, `Alert`, `Severity`, `ContextCompleteness`.
 
 ## Critérios de sucesso
-- **SC-001:** latência fim a fim (chegada no receiver → alerta publicado) **p99 ≤ 500 ms** a 8.000 TPS; meta interna ~225 ms. **Não verificado a 8.000 TPS** (sem medição na nuvem); medido a 300 TPS com o motor aquecido: p99 230 ms (`docs/resultados-carga.md`).
+- **SC-001:** latência fim a fim (chegada no receiver → alerta publicado) **p99 ≤ 500 ms** a 8.000 TPS; meta interna ~225 ms. **Não verificado a 8.000 TPS nesta entrega** (etapa futura, na nuvem); medido a 300 TPS com o motor aquecido: p99 230 ms (`docs/resultados-carga.md`).
 - **SC-002:** 0 decisões duplicadas e 0 transações sem decisão no teste de caos (H6).
 - **SC-003:** uma regra ativada vale no motor em ≤ 35 s de ponta a ponta (da ativação na API até a decisão, passando pelo outbox, pelo Debezium e pelo consumo). Medido no compose: 13 a 20 s.
 - **SC-004:** estado por conta ≤ 5 KB (medido pelo serde).
