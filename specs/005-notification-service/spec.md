@@ -19,7 +19,7 @@ Como analista antifraude, quero receber todo alerta (MEDIUM e HIGH) no sistema l
 
 **Cenários de aceite**
 1. **Given** um alerta MEDIUM, **When** é consumido, **Then** é gravado em `alerts`, e uma entrega `ANTIFRAUD_WEBHOOK` fica `SENT`.
-2. **Given** a chamada ao webhook, **When** o legado recebe, **Then** os headers `X-Signature` (HMAC-SHA256 do corpo) e `Idempotency-Key` (= `alertId`) estão presentes.
+2. **Given** a chamada ao webhook, **When** o legado recebe, **Then** os headers `X-Signature` (HMAC-SHA256 do corpo, em hexadecimal) e `Idempotency-Key` (= `alertId:ANTIFRAUD_WEBHOOK`, como o FR-005 pede a todo provedor) estão presentes.
 
 ### H2 — Avisar o cliente em alerta grave (P1)
 Como cliente, quero ser avisado no celular quando houver suspeita grave na minha conta, para agir na hora.

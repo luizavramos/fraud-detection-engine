@@ -19,11 +19,11 @@ Base de caminhos: `notification-service/src/{main,test}/java/br/com/motorfraude/
 - [x] T510 Implementar os repositórios JDBC
 
 ## Fase 4 — Canais (H1, H2, H4)
-- [ ] T511 **Testes** (WireMock) do `AntifraudWebhookChannel`: HMAC-SHA256 válido, `Idempotency-Key`, timeout
-- [ ] T512 Implementar `AntifraudWebhookChannel`
-- [ ] T513 [P] **Testes** + implementação de `PushChannel`, `EmailChannel` e `SmsChannel` (mesma interface; `Idempotency-Key = alertId:channel`)
-- [ ] T514 [P] **Testes** + implementação do `HttpContactDirectory`
-- [ ] T515 Configuração Resilience4j por canal (timeout, retry, circuit breaker, bulkhead) + **teste**: circuit abre com 503 e fecha depois
+- [x] T511 **Testes** (WireMock) do `AntifraudWebhookChannel`: HMAC-SHA256 válido, `Idempotency-Key`, timeout
+- [x] T512 Implementar `AntifraudWebhookChannel`
+- [x] T513 [P] **Testes** + implementação de `PushChannel`, `EmailChannel` e `SmsChannel` (mesma interface; `Idempotency-Key = alertId:channel`)
+- [x] T514 [P] **Testes** + implementação do `HttpContactDirectory`
+- [x] T515 Configuração Resilience4j por canal (timeout, retry, circuit breaker, bulkhead) + **teste**: circuit abre com 503 e fecha depois
 
 ## Fase 5 — Consumo e retry (MVP de ponta a ponta)
 - [ ] T516 **Teste de integração:** alerta no tópico → linha em `alerts` → webhook chamado (H1) e push/e-mail em HIGH (H2) — `AlertFlowIT.java`
