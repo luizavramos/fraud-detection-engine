@@ -138,3 +138,11 @@ O dashboard Grafana do motor mostra: p99 fim a fim × SLO, decisões por severid
 - **Serde do `AccountFeatures` mal feito degrada a latência:** medido no teste de carga. Fallback: JSON (mais simples e mais lento).
 - **Rebalance durante deploy afeta o p99.9:** static membership + rolling deploy; aceito e documentado.
 - **Partição quente (conta PJ gigante):** métrica de lag por partição; estratégia dedicada é `[DOC]`.
+
+## 4A. Decisões da implementação (Fase 2)
+- **Referência de valor anterior à transação:** `avgAmount30d` e `maxAmount90d` são calculados **antes** de registrar a transação atual (como `isNewBeneficiary`/`isNewDevice`); contagens e somas incluem a atual (H3.1). É a leitura que fecha com o cenário H3.2 (média de R$ 200 e chegando R$ 2.000 dá `avgAmount30d = 20000`); incluir a atual inflaria a própria referência. Sem histórico a média e o máximo são 0, então as regras de desvio precisam testar `> 0`.
+- **Janelas alinhadas aos buckets:** `count1m` é o minuto corrente; `count5m`, `count1h` (60 minutos), `count24h` (24 horas) e `count30d` (30 dias) são contadas em buckets de calendário que terminam no instante da própria transação (`occurredAt`), então uma "janela de 24 h" cobre de 23 a 24 horas. Dias em UTC; `tx.hourOfDay` em America/Sao_Paulo.
+- **Evento velho demais:** o `BucketRing` recusa o evento cujo slot já foi reaproveitado por um instante mais novo (não apaga dado novo); cada anel decide sozinho, então um evento de 3 h atrás sai das janelas de minutos mas entra nas de hora e dia (é o que o backfill precisa).
+- **Sem dispositivo informado** (ex.: canal BRANCH), `isNewDevice` é falso e nada é registrado.
+- **Serde:** varints com zigzag, buckets em deltas contra o mais recente, versão no primeiro byte; fica em `adapters/gateway/kafka` para o domínio não conhecer o formato.
+- **jqwik:** o surefire do módulo inclui `**/*Properties.java`.

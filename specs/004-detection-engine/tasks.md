@@ -7,14 +7,14 @@ Base de caminhos: `detection-engine/src/{main,test}/java/br/com/motorfraude/engi
 - [x] T402 [P] Adicionar ao compose (porta 8084, volume `/data`, `KAFKA_BOOTSTRAP_SERVERS`) e ao Prometheus
 
 ## Fase 2 — Estruturas de dados (H3)
-- [ ] T403 **Testes property-based** de `BucketRing` (janela = força bruta; rotação; eventos fora de ordem até 2 min) — `domain/features/BucketRingProperties.java`
-- [ ] T404 Implementar `BucketRing`
-- [ ] T405 **Testes** de `RecentSet` (limite N, LRU, novidade) — `domain/features/RecentSetTest.java`
-- [ ] T406 Implementar `RecentSet`
-- [ ] T407 **Testes** de `AccountFeatures` + `FeatureSnapshot`: cada feature do catálogo (count1m…count30d, sum1h/24h, avgAmount30d, maxAmount90d, isNewBeneficiary/isNewDevice lidos antes do registro, hourOfDay em America/Sao_Paulo) — `domain/features/*Test.java`
-- [ ] T408 Implementar `AccountFeatures` e `FeatureSnapshot`
-- [ ] T409 **Testes** do serde binário de `AccountFeatures` (ida e volta property-based; tamanho ≤ 5 KB numa conta cheia, SC-004)
-- [ ] T410 Implementar `AccountFeaturesSerde` (varints, header de versão)
+- [x] T403 **Testes property-based** de `BucketRing` (janela = força bruta; rotação; eventos fora de ordem até 2 min) — `domain/features/BucketRingProperties.java`
+- [x] T404 Implementar `BucketRing`
+- [x] T405 **Testes** de `RecentSet` (limite N, LRU, novidade) — `domain/features/RecentSetTest.java`
+- [x] T406 Implementar `RecentSet`
+- [x] T407 **Testes** de `AccountFeatures` + `FeatureSnapshot`: cada feature do catálogo (count1m…count30d, sum1h/24h, avgAmount30d, maxAmount90d, isNewBeneficiary/isNewDevice lidos antes do registro, hourOfDay em America/Sao_Paulo) — `domain/features/*Test.java`
+- [x] T408 Implementar `AccountFeatures` e `FeatureSnapshot`
+- [x] T409 **Testes** do serde binário de `AccountFeatures` (ida e volta property-based; tamanho ≤ 5 KB numa conta cheia, SC-004)
+- [x] T410 Implementar `AccountFeaturesSerde` (varints, header de versão)
 
 ## Fase 3 — Decisão (H1, H4)
 - [ ] T411 **Testes** de `Decision`/`Alert`: severidade pelas faixas, `alertId` UUIDv5 estável, PARTIAL quando falta o perfil — `domain/DecisionTest.java`
