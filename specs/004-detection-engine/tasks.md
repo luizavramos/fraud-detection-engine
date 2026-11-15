@@ -36,7 +36,7 @@ Base de caminhos: `detection-engine/src/{main,test}/java/br/com/motorfraude/engi
 ## Fase 5 — Regras a quente (H5)
 - [x] T422 **Testes** (Kafka real) do `KafkaRuleSetProvider`: evento novo troca a versão; versão repetida ou menor é ignorada; conjunto que não compila mantém o anterior e incrementa a métrica; Kafka fora do ar mantém o atual; sem nenhum evento `ready=false`; instância nova lê o último evento do tópico
 - [x] T423 Implementar `KafkaRuleSetProvider` e ligar a readiness ao início da topologia
-- [ ] T424 **Teste de aceite** H5 com a gestão de regras real (Testcontainers ou compose): criar regra nova, mudar threshold, desligar e fazer rollback pela API → decisões refletem cada mudança em ≤ 35 s, **sem deploy nem restart do motor** (o teste confere que o uptime e o id do processo não mudaram)
+- [x] T424 **Teste de aceite** H5 com a gestão de regras real (Testcontainers ou compose): criar regra nova, mudar threshold, desligar e fazer rollback pela API → decisões refletem cada mudança em ≤ 35 s, **sem deploy nem restart do motor** (o teste confere que o uptime e o id do processo não mudaram)
 
 ## Fase 6 — Observabilidade
 - [ ] T425 Métricas do plan §7 (incluindo o histograma fim a fim a partir de `receivedAt`) + teste de que são registradas
