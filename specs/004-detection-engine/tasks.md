@@ -17,11 +17,11 @@ Base de caminhos: `detection-engine/src/{main,test}/java/br/com/motorfraude/engi
 - [x] T410 Implementar `AccountFeaturesSerde` (varints, header de versão)
 
 ## Fase 3 — Decisão (H1, H4)
-- [ ] T411 **Testes** de `Decision`/`Alert`: severidade pelas faixas, `alertId` UUIDv5 estável, PARTIAL quando falta o perfil — `domain/DecisionTest.java`
-- [ ] T412 Implementar `Decision`, `Alert`, `Severity`, `ContextCompleteness`
-- [ ] T413 Portas `DedupStore`, `FeatureStore`, `ProfileReader`, `BlocklistReader` e `RuleSetProvider`, com fakes em memória
-- [ ] T414 **Testes** do `EvaluateTransactionUseCase`: sem regra → NO_ALERT; 55 pts → MEDIUM; ≥70 → HIGH; duplicata; perfil ausente; blocklist; SHADOW não soma — usando o `CompiledRuleSet` real do kernel com as 8 regras iniciais
-- [ ] T415 Implementar `EvaluateTransactionUseCase` (plan §5)
+- [x] T411 **Testes** de `Decision`/`Alert`: severidade pelas faixas, `alertId` UUIDv5 estável, PARTIAL quando falta o perfil — `domain/DecisionTest.java`
+- [x] T412 Implementar `Decision`, `Alert`, `Severity`, `ContextCompleteness`
+- [x] T413 Portas `DedupStore`, `FeatureStore`, `ProfileReader`, `BlocklistReader` e `RuleSetProvider`, com fakes em memória
+- [x] T414 **Testes** do `EvaluateTransactionUseCase`: sem regra → NO_ALERT; 55 pts → MEDIUM; ≥70 → HIGH; duplicata; perfil ausente; blocklist; SHADOW não soma — usando o `CompiledRuleSet` real do kernel com as 8 regras iniciais
+- [x] T415 Implementar `EvaluateTransactionUseCase` (plan §5)
 
 **Checkpoint:** toda a lógica do motor testada sem Kafka.
 

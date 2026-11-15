@@ -146,3 +146,11 @@ O dashboard Grafana do motor mostra: p99 fim a fim × SLO, decisões por severid
 - **Sem dispositivo informado** (ex.: canal BRANCH), `isNewDevice` é falso e nada é registrado.
 - **Serde:** varints com zigzag, buckets em deltas contra o mais recente, versão no primeiro byte; fica em `adapters/gateway/kafka` para o domínio não conhecer o formato.
 - **jqwik:** o surefire do módulo inclui `**/*Properties.java`.
+
+## 5A. Decisões da implementação (Fase 3)
+- **Perfil ausente:** o `EvaluationContext` exige todas as features do catálogo, então sem perfil entram valores neutros: `profile.segment = "UNKNOWN"` (nenhuma sobreposição por segmento casa), `profile.accountAgeDays = -1` e `profile.hoursSinceCredentialChange = -1`. As regras iniciais testam `hoursSinceCredentialChange >= 0`, então R01 e R12 não disparam; uma regra nova que use `profile.*` precisa tratar o `-1` como "desconhecido" (vale também para perfil sem troca de credencial registrada). A decisão sai com `contextCompleteness = PARTIAL`.
+- **Tipos:** `Severity` e `ContextCompleteness` vêm do módulo `contracts` (não foram duplicados no domínio); `Decision` do motor monta direto o `FraudDecision` e o `FraudAlert`. `EvaluateTransactionUseCase.execute(tx, receivedAt, traceId)` recebe também o trace (o plano só citava `receivedAt`): se vier ausente ou inválido, o `traceId` do alerta é derivado do `transactionId`, estável.
+- **Identificadores:** `alertId = UUIDv5(NAMESPACE, transactionId)` (como o schema pede) e `decisionId = UUIDv5(NAMESPACE, "decision:" + transactionId)`; reprocessar a mesma transação gera os mesmos ids.
+- **Conjunto de regras:** o caso de uso consulta o provedor antes de marcar o dedup; sem conjunto lança `IllegalStateException` e nada é marcado nem gravado (a topologia só inicia com o conjunto carregado, T423).
+- **Fakes:** o `InMemoryFeatureStore` passa pelo serde binário a cada `load`/`save`, para o teste pegar um `save` esquecido.
+- **Camadas:** com `application` populada, o `archunit.properties` temporário saiu.
