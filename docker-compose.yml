@@ -295,6 +295,43 @@ services:
       retries: 12
       start_period: 40s
 
+  # Simuladores dos provedores do notification-service (spec 005): UM WireMock com cinco simuladores lógicos, separados por prefixo de
+  # caminho (/antifraud-legacy, /push-provider, /email-provider, /sms-provider, /contacts), em vez de cinco JVMs (o Docker local tem 4 GB).
+  # Falhas por simulador: sh infra/mocks/mock-control.sh <simulador> unavailable|slow|ok
+  provider-mocks:
+    image: wiremock/wiremock:3.13.1
+    command: ["--local-response-templating", "--disable-gzip", "--max-request-journal-entries", "200000"]
+    ports:
+      - "${PROVIDER_MOCKS_HOST_PORT:-18090}:8080"
+    volumes:
+      - ./infra/mocks/mappings:/home/wiremock/mappings:ro
+    environment:
+      JAVA_OPTS: "-Xmx192m"
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/__admin/health || wget -q --spider http://localhost:8080/__admin/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # Notificações (spec 005). Antes, no repositório notification-service ao lado: ./mvnw -DskipTests package
+  notification-service:
+    profiles: ["app"]
+    build: ${NOTIFICATION_SERVICE_CONTEXT:-../notification-service}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "${NOTIFICATION_SERVICE_HOST_PORT:-8085}:8085"
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8085/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 25s
+
 volumes:
   postgres-data:
   bank-db-data:

@@ -1,0 +1,10 @@
+{
+  "priority": 10,
+  "request": { "method": "POST", "urlPath": "/antifraud-legacy/webhooks/fraud-alerts" },
+  "response": {
+    "status": 202,
+    "headers": { "Content-Type": "application/json" },
+    "body": "{\"caseId\":\"CASE-{{randomValue length=10 type='ALPHANUMERIC'}}\",\"idempotencyKey\":\"{{request.headers.Idempotency-Key}}\"}",
+    "transformers": ["response-template"]
+  }
+}

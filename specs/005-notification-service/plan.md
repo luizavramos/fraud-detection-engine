@@ -19,7 +19,7 @@ Uma falha de canal vira um agendamento num tópico de retry. Resolve o problema 
 | Resiliência | Resilience4j: `TimeLimiter` 2 s, `Retry` 3× (backoff exponencial + jitter), `CircuitBreaker` por canal, `Bulkhead` por canal |
 | Banco | PostgreSQL 16, `alerts_db`, Flyway; `alerts` particionada por dia |
 | Porta | 8085 |
-| Simuladores | WireMock no compose: `antifraud-legacy-mock`, `push-provider-mock`, `email-provider-mock`, `sms-provider-mock`, `contacts-mock` (com cenários de falha) |
+| Simuladores | **Um** WireMock no compose (`provider-mocks`, porta 18090) com cinco simuladores lógicos por prefixo de caminho: `/antifraud-legacy`, `/push-provider`, `/email-provider`, `/sms-provider` e `/contacts`; falha por simulador com `infra/mocks/mock-control.sh` |
 
 ## 3. Clean Architecture
 ```
@@ -37,13 +37,13 @@ notification-service/src/main/java/br/com/motorfraude/notification/
 │   └── gateway/ AlertRepository, DeliveryRepository, NotificationChannel (strategy por canal),
 │                 ContactDirectory, RetryScheduler, Clock
 ├── adapters/
-│   ├── in/kafka/AlertListener.java            # fraud-alerts.v1 → Register + Dispatch
-│   ├── in/kafka/RetryListener.java            # alerts.retry.* → espera o vencimento → Dispatch
-│   ├── in/rest/AlertController.java           # GET /v1/alerts, POST feedback
-│   ├── out/postgres/…
-│   ├── out/channels/{AntifraudWebhookChannel (HMAC), PushChannel, EmailChannel, SmsChannel}.java
-│   ├── out/contacts/HttpContactDirectory.java
-│   └── out/kafka/KafkaRetryScheduler.java
+│   ├── controller/kafka/AlertListener.java    # fraud-alerts.v1 → Register + Dispatch
+│   ├── controller/kafka/RetryListener.java    # alerts.retry.* → espera o vencimento → Dispatch
+│   ├── controller/rest/AlertController.java   # GET /v1/alerts, POST feedback
+│   ├── gateway/postgres/…
+│   ├── gateway/channels/{AntifraudWebhookChannel (HMAC), PushChannel, EmailChannel, SmsChannel}.java
+│   ├── gateway/contacts/HttpContactDirectory.java
+│   └── gateway/kafka/KafkaRetryScheduler.java
 └── infrastructure/ config (Resilience4j, Kafka, segurança simples), métricas
 ```
 
@@ -103,3 +103,9 @@ Igual à spec técnica §4.4: `alerts` (PK `alert_id`, `transaction_id` UNIQUE, 
 ## 8. Riscos
 - **Provedor sem idempotência:** possibilidade (baixa) de aviso duplicado. Documentado + reconciliação diária `[DOC]`.
 - **`nack` com espera longa (30 min) segura a partição do tópico de retry:** aceitável, porque cada tópico de retry contém só mensagens com o mesmo atraso.
+
+## 9. Decisões da implementação (Fase 1)
+- **Pacotes pela constituição:** `adapters/controller/{kafka,rest}` e `adapters/gateway/{postgres,channels,contacts,kafka}` no lugar de `in/` e `out/`.
+- **Um WireMock, cinco simuladores lógicos:** cinco JVMs de WireMock não cabem no Docker local de 4 GB junto com o restante da pilha. Os simuladores são separados por prefixo de caminho, e a falha (503 ou lentidão de 5 s) liga e desliga **por simulador** com um estub de prioridade 1 criado pela API administrativa; o teste de fumaça (`infra/mocks/smoke.sh`) confere o isolamento (push em 503, e-mail e antifraude seguem aceitando). Nas Fases 4 e 6 os testes de canal usam WireMock próprio de teste (Testcontainers ou o do JUnit), não este.
+- **Contrato dos simuladores** (os adaptadores da Fase 4 seguem estes caminhos): `POST /antifraud-legacy/webhooks/fraud-alerts` (devolve `caseId`), `POST /push-provider/v1/push`, `POST /email-provider/v1/email`, `POST /sms-provider/v1/sms` (devolvem `messageId` e ecoam o `Idempotency-Key`), `GET /contacts/v1/contacts/{accountToken}` (200 com `pushToken`, `email` e `phone` sintéticos; 404 para tokens `acc_tok_nocontact*`, o cenário `NO_CONTACT`).
+- **Dependências por fase:** o módulo começa só com web, actuator e tracing; JDBC, Flyway, Kafka e Resilience4j entram junto com as fases que os usam (um starter de JDBC sem banco derrubaria o teste de subida).

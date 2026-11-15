@@ -1,0 +1,10 @@
+{
+  "priority": 10,
+  "request": { "method": "POST", "urlPath": "/push-provider/v1/push" },
+  "response": {
+    "status": 202,
+    "headers": { "Content-Type": "application/json" },
+    "body": "{\"messageId\":\"push-{{randomValue length=10 type='ALPHANUMERIC'}}\",\"idempotencyKey\":\"{{request.headers.Idempotency-Key}}\"}",
+    "transformers": ["response-template"]
+  }
+}

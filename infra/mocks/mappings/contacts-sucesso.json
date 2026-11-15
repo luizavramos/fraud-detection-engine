@@ -1,0 +1,10 @@
+{
+  "priority": 10,
+  "request": { "method": "GET", "urlPathPattern": "/contacts/v1/contacts/acc_tok_.*" },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "body": "{\"accountToken\":\"{{request.pathSegments.[3]}}\",\"pushToken\":\"push-{{request.pathSegments.[3]}}\",\"email\":\"{{request.pathSegments.[3]}}@exemplo.invalid\",\"phone\":\"+5511900000000\"}",
+    "transformers": ["response-template"]
+  }
+}

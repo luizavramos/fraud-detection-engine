@@ -3,9 +3,9 @@
 Base de caminhos: `notification-service/src/{main,test}/java/br/com/motorfraude/notification/`
 
 ## Fase 1 — Setup
-- [ ] T501 Criar o módulo `notification-service` (Spring Boot, virtual threads) + teste ArchUnit
-- [ ] T502 [P] Simuladores WireMock no compose (`antifraud-legacy-mock`, `push-provider-mock`, `email-provider-mock`, `sms-provider-mock`, `contacts-mock`), com *mappings* de sucesso e cenários de falha (503, lentidão) — `infra/mocks/`
-- [ ] T503 [P] Adicionar o serviço ao compose (porta 8085) e ao Prometheus
+- [x] T501 Criar o módulo `notification-service` (Spring Boot, virtual threads) + teste ArchUnit
+- [x] T502 [P] Simuladores WireMock no compose (`antifraud-legacy-mock`, `push-provider-mock`, `email-provider-mock`, `sms-provider-mock`, `contacts-mock`), com *mappings* de sucesso e cenários de falha (503, lentidão) — `infra/mocks/`
+- [x] T503 [P] Adicionar o serviço ao compose (porta 8085) e ao Prometheus
 
 ## Fase 2 — Domínio e casos de uso (H1, H2, H3, H5)
 - [ ] T504 **Testes** de `ChannelPolicy` e `SuppressionPolicy` — `domain/*Test.java`
