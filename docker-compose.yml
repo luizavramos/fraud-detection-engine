@@ -247,7 +247,32 @@ services:
       retries: 12
       start_period: 30s
 
+  # Motor de detecção (spec 004): Kafka Streams com estado local em RocksDB. Antes, no repositório detection-engine ao lado:
+  # ./mvnw -DskipTests package
+  detection-engine:
+    profiles: ["app"]
+    build: ${DETECTION_ENGINE_CONTEXT:-../detection-engine}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "${DETECTION_ENGINE_HOST_PORT:-8084}:8084"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      HTTP_PORT: "8084"
+      STATE_DIR: /data
+    volumes:
+      - detection-engine-data:/data
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8084/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
 volumes:
   postgres-data:
   bank-db-data:
+  detection-engine-data:
   customer-service-data:

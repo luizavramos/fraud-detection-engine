@@ -3,8 +3,8 @@
 Base de caminhos: `detection-engine/src/{main,test}/java/br/com/motorfraude/engine/`
 
 ## Fase 1 — Setup
-- [ ] T401 Criar o módulo `detection-engine` (depende de `contracts`, `platform-commons`, `platform-streams` e `rules-kernel`) + teste ArchUnit
-- [ ] T402 [P] Adicionar ao compose (porta 8084, volume `/data`, `KAFKA_BOOTSTRAP_SERVERS`) e ao Prometheus
+- [x] T401 Criar o módulo `detection-engine` (depende de `contracts`, `platform-commons`, `platform-streams` e `rules-kernel`) + teste ArchUnit
+- [x] T402 [P] Adicionar ao compose (porta 8084, volume `/data`, `KAFKA_BOOTSTRAP_SERVERS`) e ao Prometheus
 
 ## Fase 2 — Estruturas de dados (H3)
 - [ ] T403 **Testes property-based** de `BucketRing` (janela = força bruta; rotação; eventos fora de ordem até 2 min) — `domain/features/BucketRingProperties.java`
