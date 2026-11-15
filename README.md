@@ -100,8 +100,8 @@ java -jar ../load-generator/target/load-generator.jar --tps 300 --duration 60s -
 
 Também roda com `./mvnw exec:java -Dexec.args="--tps 300 --duration 60s"` na pasta do `load-generator`. Para medir, prefira o jar: sem o Maven por perto. `--help` lista todas as opções.
 
-**Escala local x nuvem.** Os 8.000 TPS (média) e 25.000 (pico) do case só se reproduzem de verdade na **nuvem**, com
-receiver, Kafka e gerador em máquinas separadas. Num notebook, tudo divide os mesmos núcleos. Medido numa máquina de
+**Escala medida.** Os 8.000 TPS (média) e 25.000 (pico) do case **não foram medidos e não serão** (o projeto não tem medição na
+nuvem): num notebook, receiver, Kafka e gerador dividem os mesmos núcleos. O que há é a medição local numa máquina de
 4 núcleos físicos (8 lógicos), com receiver e Kafka no Docker e o gerador no host:
 
 | TPS | Erros | p99 |

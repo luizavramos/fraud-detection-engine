@@ -35,7 +35,7 @@ duplicidade nelas: nenhuma.
   `alertId` e o `decisionId` são derivados do `transactionId`, então até uma repetição geraria o mesmo identificador.
 
 ## O que **não** foi provado aqui
-- **8.000 TPS** e a carga de pico de 25.000 TPS: só na nuvem. Aqui foram 150 TPS, porque o limite de portas efêmeras do Windows
+- **8.000 TPS** e a carga de pico de 25.000 TPS: **não medidos** (não há medição na nuvem). Aqui foram 150 TPS, porque o limite de portas efêmeras do Windows
   (cerca de 9 mil conexões por rodada) e o notebook compartilhado entre gerador, Docker e motor não permitem mais.
 - **Uma só rodada, um só ponto de falha** (a instância com mais partições, no meio da carga). Não variei o instante do kill, não
   matei a instância durante um rebalance e não testei a queda do broker.
