@@ -26,12 +26,12 @@ Base de caminhos: `detection-engine/src/{main,test}/java/br/com/motorfraude/engi
 **Checkpoint:** toda a lógica do motor testada sem Kafka.
 
 ## Fase 4 — Topologia (H1, H2, H4, H7, H8, H9)
-- [ ] T416 **Testes `TopologyTestDriver`:** decisão em `fraud-decisions.v1`, alerta só ≥ MEDIUM em `fraud-alerts.v1`, dedup, perfil da KTable local, blocklist global com tombstone, backfill sem saída, DLQ; toda decisão e todo alerta emitidos passam em `ContractAssertions.assertProduces` (`fraud-decision.v1`, `fraud-alert.v1`; inclui os limites de `features{}`) — `infrastructure/TopologyFactoryTest.java`
-- [ ] T417 Implementar os adapters de store (`StateStoreDedupStore`, `StateStoreFeatureStore`, `KTableProfileReader`, `GlobalBlocklistReader`)
-- [ ] T418 Implementar `EvaluateProcessor` (lê `receivedAt` e `traceparent`; encaminha `Outcome`) e `BackfillProcessor` (também consulta e marca o `seen-tx`, para que um registro de backfill repetido não conte duas vezes nos buckets)
-- [ ] T419 Implementar o punctuator de limpeza do `seen-tx` (24 h) + teste
-- [ ] T420 Implementar o `DlqDeserializationHandler` + teste
-- [ ] T421 Implementar `TopologyFactory` e `DetectionEngineApp` (usa `StreamsAppBootstrap`, EOS v2, `commit.interval.ms=100`, static membership)
+- [x] T416 **Testes `TopologyTestDriver`:** decisão em `fraud-decisions.v1`, alerta só ≥ MEDIUM em `fraud-alerts.v1`, dedup, perfil da KTable local, blocklist global com tombstone, backfill sem saída, DLQ; toda decisão e todo alerta emitidos passam em `ContractAssertions.assertProduces` (`fraud-decision.v1`, `fraud-alert.v1`; inclui os limites de `features{}`) — `infrastructure/TopologyFactoryTest.java`
+- [x] T417 Implementar os adapters de store (`StateStoreDedupStore`, `StateStoreFeatureStore`, `KTableProfileReader`, `GlobalBlocklistReader`)
+- [x] T418 Implementar `EvaluateProcessor` (lê `receivedAt` e `traceparent`; encaminha `Outcome`) e `BackfillProcessor` (também consulta e marca o `seen-tx`, para que um registro de backfill repetido não conte duas vezes nos buckets)
+- [x] T419 Implementar o punctuator de limpeza do `seen-tx` (24 h) + teste
+- [x] T420 Implementar o `DlqDeserializationHandler` + teste
+- [x] T421 Implementar `TopologyFactory` e `DetectionEngineApp` (usa `StreamsAppBootstrap`, EOS v2, `commit.interval.ms=100`, static membership)
 
 ## Fase 5 — Regras a quente (H5)
 - [ ] T422 **Testes** (Kafka real) do `KafkaRuleSetProvider`: evento novo troca a versão; versão repetida ou menor é ignorada; conjunto que não compila mantém o anterior e incrementa a métrica; Kafka fora do ar mantém o atual; sem nenhum evento `ready=false`; instância nova lê o último evento do tópico

@@ -154,3 +154,12 @@ O dashboard Grafana do motor mostra: p99 fim a fim × SLO, decisões por severid
 - **Conjunto de regras:** o caso de uso consulta o provedor antes de marcar o dedup; sem conjunto lança `IllegalStateException` e nada é marcado nem gravado (a topologia só inicia com o conjunto carregado, T423).
 - **Fakes:** o `InMemoryFeatureStore` passa pelo serde binário a cada `load`/`save`, para o teste pegar um `save` esquecido.
 - **Camadas:** com `application` populada, o `archunit.properties` temporário saiu.
+
+## 3A. Decisões da implementação (Fase 4)
+- **Atraso de evento:** `occurredAt` mais de 2 min atrás do `receivedAt` entra no bucket do horário de chegada e o `Outcome` marca `late` (a métrica `engine_late_events_total` usa isso na Fase 6); dentro de 2 min vale o `occurredAt`. A lacuna estava no caso de borda da spec e no plano, mas nenhuma tarefa a cobria.
+- **Leitura inicial:** os cinco tópicos de entrada começam do **earliest** quando o grupo é novo (o padrão do Streams é `latest`, que perderia perfis, blocklist e backfill já publicados, e deixaria transações sem decisão, contra H6); o dedup protege contra o reprocessamento.
+- **Perfil e blocklist:** o perfil é um `KTable` cujo store é ligado ao processor (mesmo sub-topology, o que exige `transaction-commands.v1`, `customer-profile.v1` e `transaction-history-backfill.v1` com o mesmo número de partições; o `smoke.sh` já confere); a blocklist é uma `GlobalKTable` lida pelo nome do store.
+- **DLQ:** o Kafka Streams 4.1 ainda não tem DLQ embutida para erro de desserialização; o `DlqDeserializationHandler` publica com um produtor próprio (não transacional) em `transaction-commands.dlq`, com o motivo e a origem (tópico, partição, offset) nos cabeçalhos; se a DLQ falhar, o handler manda falhar o app em vez de descartar. Vale para todos os tópicos de entrada. Os serdes validam os campos obrigatórios, então JSON válido mas incompleto também vai para a DLQ.
+- **Limpeza do `seen-tx`:** punctuator de relógio de parede a cada 5 min, varredura incremental (50 mil chaves por rodada, com cursor) e retenção de 24 h.
+- **`platform-streams`:** `StreamsAppBootstrap.create(settings, propriedadesExtras, topologia)` aceita propriedades do app (handler de DLQ, `commit.interval.ms=100`), recusando as reservadas (`processing.guarantee`, id da aplicação, servidores, estado e `group.instance.id`).
+- **`DetectionEngineApp`:** só inicia a topologia quando há conjunto de regras (a prontidão também exige); até o `KafkaRuleSetProvider` (Fase 5) o `main` fica aguardando.
