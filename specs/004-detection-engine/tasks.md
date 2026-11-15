@@ -39,9 +39,9 @@ Base de caminhos: `detection-engine/src/{main,test}/java/br/com/motorfraude/engi
 - [x] T424 **Teste de aceite** H5 com a gestão de regras real (Testcontainers ou compose): criar regra nova, mudar threshold, desligar e fazer rollback pela API → decisões refletem cada mudança em ≤ 35 s, **sem deploy nem restart do motor** (o teste confere que o uptime e o id do processo não mudaram)
 
 ## Fase 6 — Observabilidade
-- [ ] T425 Métricas do plan §7 (incluindo o histograma fim a fim a partir de `receivedAt`) + teste de que são registradas
-- [ ] T426 Dashboard do motor no Grafana (p99 × SLO, severidade, alertas por regra × média das últimas horas, lag por partição, versão do conjunto por instância)
-- [ ] T427 Seed da blocklist para demonstração: `infra/seed/blocklist.sh`
+- [x] T425 Métricas do plan §7 (incluindo o histograma fim a fim a partir de `receivedAt`) + teste de que são registradas
+- [x] T426 Dashboard do motor no Grafana (p99 × SLO, severidade, alertas por regra × média das últimas horas, lag por partição, versão do conjunto por instância)
+- [x] T427 Seed da blocklist para demonstração: `infra/seed/blocklist.sh`
 
 ## Fase 7 — Prova dos requisitos não funcionais (H6, SC-001/002)
 - [ ] T428 **Consumidor-auditor** (`tools/auditor`): lê os `transactionId` aceitos (log do `load-generator`) e `fraud-decisions.v1`, e reporta faltantes e duplicados

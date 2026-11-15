@@ -4,7 +4,7 @@
   "tags": ["motor-fraude"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 4,
+  "version": 5,
   "editable": true,
   "refresh": "10s",
   "time": { "from": "now-1h", "to": "now" },
@@ -16,7 +16,7 @@
       "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
       "options": {
         "mode": "markdown",
-        "content": "Painéis entram junto com cada serviço (specs 001–006). Já disponível: **Receiver** (spec 001), **Gestão de regras** (spec 002) e **Perfil do cliente** (spec 003). Ainda por vir: p99 fim a fim do motor, alertas por severidade, lag de consumo, entregas por canal."
+        "content": "Painéis entram junto com cada serviço (specs 001–006). Já disponível: **Receiver** (spec 001), **Gestão de regras** (spec 002), **Perfil do cliente** (spec 003) e **Motor de detecção** (spec 004). Ainda por vir: p99 fim a fim do motor, alertas por severidade, lag de consumo, entregas por canal."
       }
     },
     {
@@ -296,6 +296,126 @@
           "expr": "histogram_quantile(0.5, sum by (le) (rate(customer_cdc_lag_seconds_bucket[1m])))",
           "legendFormat": "p50"
         }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "Motor de detecção (spec 004)",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 54 },
+      "panels": []
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Latência fim a fim: p99 e p50 contra o SLO de 0,5 s",
+      "description": "Do receivedAt (hora em que o receiver aceitou a transação) até a decisão publicada pelo motor. A linha vermelha é o SLO (p99 ≤ 500 ms).",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 55 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "fillOpacity": 0 },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.5 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "SLO" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }, { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.99, sum by (le) (rate(engine_e2e_latency_seconds_bucket[1m])))", "legendFormat": "p99" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.5, sum by (le) (rate(engine_e2e_latency_seconds_bucket[1m])))", "legendFormat": "p50" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "vector(0.5)", "legendFormat": "SLO" }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Decisões por segundo, por severidade",
+      "description": "NONE = sem alerta; MEDIUM e HIGH geram alerta em fraud-alerts.v1.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 55 },
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (severity) (rate(engine_decisions_total[1m]))", "legendFormat": "{{severity}}" }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Disparos por regra agora × média das últimas 3 horas",
+      "description": "Uma regra acima da própria média (linha tracejada) sugere falso positivo súbito: um threshold mal ajustado ou uma regra nova. Só regras ativas; as em sombra aparecem no painel seguinte.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 63 },
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 0 } }, "overrides": [
+        { "matcher": { "id": "byRegexp", "options": "média 3 h.*" }, "properties": [{ "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }] }
+      ] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (rule_id) (rate(engine_rule_hits_total{mode=\"active\"}[5m]))", "legendFormat": "agora {{rule_id}}" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg_over_time(sum by (rule_id) (rate(engine_rule_hits_total{mode=\"active\"}[5m]))[3h:5m])", "legendFormat": "média 3 h {{rule_id}}" }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Disparos de regras em sombra, por regra",
+      "description": "Regras em sombra são avaliadas e registradas, mas não somam pontos nem geram alerta: servem para medir o efeito antes de ativar.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 63 },
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (rule_id) (rate(engine_rule_hits_total{mode=\"shadow\"}[5m]))", "legendFormat": "{{rule_id}}" }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Lag máximo do consumidor, por instância",
+      "description": "Maior atraso entre as partições que a instância lê. O lag por partição só existe com métricas em nível DEBUG do Kafka Streams (mais custo); em INFO o Kafka expõe o máximo por consumidor.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 71 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "fillOpacity": 0 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (instance) (kafka_consumer_fetch_manager_records_lag_max{service=\"detection-engine\", client_id=~\".*StreamThread.*consumer\"})", "legendFormat": "{{instance}}" }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Versão e idade do conjunto de regras, por instância",
+      "description": "Todas as instâncias devem mostrar a mesma versão pouco depois de uma ativação. A idade conta desde a publicação do conjunto.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 71 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "fillOpacity": 0, "axisPlacement": "left" } }, "overrides": [
+        { "matcher": { "id": "byRegexp", "options": "idade.*" }, "properties": [{ "id": "unit", "value": "s" }, { "id": "custom.axisPlacement", "value": "right" }] }
+      ] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "engine_ruleset_version", "legendFormat": "versão {{instance}}" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "engine_ruleset_age_seconds", "legendFormat": "idade {{instance}}" }
+      ]
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Duplicatas barradas, eventos atrasados, DLQ, contexto parcial e falhas de carga de regras (por segundo)",
+      "description": "duplicatas = reenvios descartados pelo dedup; atrasados = occurredAt mais de 2 min antes do recebimento; DLQ = mensagens que não desserializam; parcial = decisões sem o perfil do cliente; falhas = conjunto de regras rejeitado (compile, invalid ou kafka). Tudo deveria ficar perto de zero.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 79 },
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(engine_duplicates_dropped_total[1m]))", "legendFormat": "duplicatas" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(engine_late_events_total[1m]))", "legendFormat": "atrasados" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(engine_dlq_total[1m]))", "legendFormat": "DLQ" },
+        { "refId": "D", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(engine_context_partial_total[1m]))", "legendFormat": "contexto parcial" },
+        { "refId": "E", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (reason) (rate(engine_ruleset_load_failures_total[5m]))", "legendFormat": "falha de carga {{reason}}" }
       ]
     }
   ]
