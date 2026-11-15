@@ -3,9 +3,9 @@
 Base de caminhos: `transaction-service/src/{main,test}/java/br/com/motorfraude/transaction/`
 
 ## Fase 1 — Setup
-- [ ] T601 Criar o módulo `transaction-service` (depende de `contracts`, `platform-commons` e `platform-streams`; usa `StreamsAppBootstrap` do 003/T301) + teste ArchUnit
-- [ ] T602 [P] Conector Debezium para `transactions` (`snapshot.mode=initial`, publicação `dbz_transactions`, slot próprio — 000 plan §5.1) em `register-connectors.sh` + serviço no compose (porta 8086, `CUTOVER_AT`)
-- [ ] T603 [P] Gerar ~1 milhão de transações sintéticas em 120 dias no `infra/bank-db/init.sql` (ou script de seed separado)
+- [x] T601 Criar o módulo `transaction-service` (depende de `contracts`, `platform-commons` e `platform-streams`; usa `StreamsAppBootstrap` do 003/T301) + teste ArchUnit
+- [x] T602 [P] Conector Debezium para `transactions` (`snapshot.mode=initial`, publicação `dbz_transactions`, slot próprio — 000 plan §5.1) em `register-connectors.sh` + serviço no compose (porta 8086, `CUTOVER_AT`)
+- [x] T603 [P] Gerar ~1 milhão de transações sintéticas em 120 dias no `infra/bank-db/init.sql` (ou script de seed separado)
 
 ## Fase 2 — Domínio e mapeamento
 - [ ] T604 **Testes** de `HistoryWindow` (bordas) — `domain/HistoryWindowTest.java`
@@ -19,7 +19,7 @@ Base de caminhos: `transaction-service/src/{main,test}/java/br/com/motorfraude/t
 
 ## Fase 4 — Prova
 - [ ] T610 **Teste de integração** (Testcontainers + Debezium): 10 mil transações → registros corretos e sem dado pessoal (SC-002)
-- [ ] T611 **Teste ponta a ponta com o motor** (compose): backfill → `avgAmount30d` de 100 contas de referência igual ao SQL (SC-001) — `tools/backfill-check/`
+- [ ] T611 **Prova do SC-001, em processo no motor** (decisão do usuário, sem mexer no código do motor): no `detection-engine`, um teste alimenta a topologia real com os registros que o `transaction-service` gera sobre 100 contas de referência (fixture produzida pelo próprio serviço) e compara `avgAmount30d` com o SQL do banco legado, diferença 0. No compose, prova só o transporte: contagem e conteúdo do tópico `transaction-history-backfill.v1`, sem dado pessoal. O motor não expõe features fora das regras e continua assim.
 - [ ] T612 Documentar o procedimento de refazer o backfill (H3) e o `cutoverAt` — `transaction-service/README.md`
 - [ ] T613 Métricas de progresso (`backfill_records_published_total`, `backfill_records_skipped_total{reason}`) + painel no Grafana
 

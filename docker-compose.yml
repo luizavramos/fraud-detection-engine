@@ -346,9 +346,36 @@ services:
       retries: 12
       start_period: 25s
 
+  # Backfill do histórico (spec 006): Kafka Streams sem estado, lê cdc.bank.transactions e publica transaction-history-backfill.v1. Antes, no
+  # repositório transaction-service ao lado: ./mvnw -DskipTests package. Fluxo: sh infra/seed/transactions.sh, depois
+  # sh infra/connect/register-connectors.sh transactions-cdc (o snapshot do Debezium dispara o backfill).
+  transaction-service:
+    profiles: ["app"]
+    build: ${TRANSACTION_SERVICE_CONTEXT:-../transaction-service}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "${TRANSACTION_SERVICE_HOST_PORT:-8086}:8086"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      HTTP_PORT: "8086"
+      STATE_DIR: /data
+      CUTOVER_AT: ${CUTOVER_AT:-}
+    volumes:
+      - transaction-service-data:/data
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8086/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
 volumes:
   postgres-data:
   bank-db-data:
   detection-engine-data:
   detection-engine-2-data:
   customer-service-data:
+  transaction-service-data:

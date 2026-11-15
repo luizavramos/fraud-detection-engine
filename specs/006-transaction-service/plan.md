@@ -48,7 +48,7 @@ transaction-service/src/main/java/br/com/motorfraude/transaction/
 | Mapper | descarta `payer_name`/`payer_cpf`; ignora `op` ≠ `r` |
 | Topologia (`TopologyTestDriver`) | filtro da janela, chave `accountId`, estado `COMPLETED` no último evento |
 | Integração (Testcontainers + Debezium) | 10 mil transações → registros corretos no tópico |
-| Ponta a ponta com o motor | SC-001: `avgAmount30d` de contas de referência = SQL |
+| Em processo no motor (SC-001) | `avgAmount30d` de 100 contas de referência, calculado pela topologia real do motor a partir dos registros do serviço, = SQL (o motor não expõe features; ver T611) |
 | ArchUnit | regra de dependência |
 
 ## 6. Constitution Check
@@ -61,3 +61,10 @@ transaction-service/src/main/java/br/com/motorfraude/transaction/
 ## 7. Riscos
 - **Snapshot grande competindo com o tráfego ao vivo no mesmo cluster:** controle de taxa + execução fora do horário de pico.
 - **Reprocessar exige resetar o estado do motor:** procedimento documentado (H3). Não é automatizado no case.
+
+## 8. Decisões da implementação (Fase 1)
+- **Prova do SC-001 (decisão do usuário):** o motor não expõe features fora das regras, e não vamos acrescentar endpoint de diagnóstico a um serviço fechado. A prova é um teste **em processo no `detection-engine`**: a topologia real recebe os registros que o `transaction-service` produz para 100 contas de referência e `avgAmount30d` é comparado com o SQL; no compose só se prova o transporte (tópico). Mesmo assim, "diferença 0" exige definir o SQL com a mesma janela alinhada a buckets do motor (o motor usa a média de referência anterior à transação, ver 004), o que será decidido e documentado na Fase 4.
+- **Seed separado do `init.sql`:** `infra/seed/transactions.sh` (e não o `init.sql`), porque o `init.sql` só roda na criação do volume do banco legado, que já existe com os clientes da 003. É determinístico (mesmo `N` e `ANCHOR` dão as mesmas linhas), idempotente e deve rodar **antes** de registrar o conector (o snapshot lê o que já estiver na tabela). 1 milhão de linhas em 120 dias leva ~35 s; com `ANCHOR=2026-11-15T00:00:00Z` ficam 750.082 dentro dos 90 dias e 249.918 fora. O primeiro teste com 20 mil linhas passou e escondeu um estouro de inteiro (`n * 104729` acima de ~20 mil linhas); apareceu ao rodar o tamanho real e foi corrigido com `bigint`.
+- **Conector `transactions-cdc`:** slot e publicação próprios (`transactions_cdc_slot`, `dbz_transactions`), `snapshot.mode=initial`. As colunas `payer_name` e `payer_cpf` continuam no CDC de propósito (como em 003); é o mapeador que as descarta, com teste.
+- **`CUTOVER_AT` sem valor padrão no serviço:** o compose repassa `${CUTOVER_AT:-}` e o serviço deve **recusar a partida** se vier vazio ou inválido (falha rápida, Fase 3); o `.env.example` traz um valor de exemplo. Um corte errado dobraria ou perderia transações, então não se adivinha.
+- **`archunit.properties` temporário** (`failOnEmptyShould=false`): `domain` e `application` ainda estão vazios; sai na Fase 2 (T605), como foi na 003.
