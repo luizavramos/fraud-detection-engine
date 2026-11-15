@@ -322,8 +322,14 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     ports:
       - "${NOTIFICATION_SERVICE_HOST_PORT:-8085}:8085"
+    environment:
+      ALERTS_DB_URL: jdbc:postgresql://postgres:5432/alerts_db
+      ALERTS_DB_USER: ${POSTGRES_USER:-motorfraude}
+      ALERTS_DB_PASSWORD: ${POSTGRES_PASSWORD:-motorfraude}
     mem_limit: 512m
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8085/actuator/health/readiness"]

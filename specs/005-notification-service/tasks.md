@@ -15,8 +15,8 @@ Base de caminhos: `notification-service/src/{main,test}/java/br/com/motorfraude/
 - [x] T508 Implementar os dois casos de uso
 
 ## Fase 3 — Persistência
-- [ ] T509 Flyway `V1__schema.sql` (plan §4) + **teste de integração** (Testcontainers Postgres) do `ON CONFLICT DO NOTHING` e da consulta de supressão
-- [ ] T510 Implementar os repositórios JDBC
+- [x] T509 Flyway `V1__schema.sql` (plan §4) + **teste de integração** (Testcontainers Postgres) do `ON CONFLICT DO NOTHING` e da consulta de supressão
+- [x] T510 Implementar os repositórios JDBC
 
 ## Fase 4 — Canais (H1, H2, H4)
 - [ ] T511 **Testes** (WireMock) do `AntifraudWebhookChannel`: HMAC-SHA256 válido, `Idempotency-Key`, timeout
