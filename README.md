@@ -71,8 +71,15 @@ O projeto segue uma estrutura de microsserviços, **um repositório por serviço
 | `platform-commons` | Base comum sem Spring: logs JSON com dados pessoais mascarados, `traceparent`, `Clock` e regras ArchUnit |
 | `receiver` | Porta de entrada HTTP (spec 001) |
 | `load-generator` | Gerador de carga (spec 000, Fase 5) |
+| `rules-kernel` | Biblioteca de regras: compilação e avaliação CEL (spec 002) |
+| `rule-management` | Gestão de regras (spec 002, porta 8082) |
+| `platform-streams` | Base dos apps Kafka Streams: EOS, static membership, saúde e métricas sem Spring |
+| `customer-service` | Perfil do cliente a partir do CDC do banco legado (spec 003, porta 8083) |
+| `detection-engine` | Motor de detecção (spec 004, porta 8084; `--profile app`, e `--profile chaos` para a 2ª instância) |
+| `auditor` | Consumidor-auditor: uma decisão por transação aceita, nenhum alerta duplicado (spec 004, H6) |
+| `notification-service` | Notificações ao antifraude e ao cliente (spec 005, porta 8085; em implementação) |
 
-Os demais serviços (`customer-service`, `detection-engine` etc.) ganham um repositório cada, quando a spec for implementada. Já existem `rules-kernel` (biblioteca de regras) e `rule-management` (gestão de regras, porta 8082; `docker compose --profile app up -d --build rule-management`).
+O `transaction-service` (spec 006) ganha o repositório quando for implementado. Provas e roteiros neste repositório: `infra/h5-acceptance.sh` (regras a quente), `infra/chaos-h6.sh` (derrubar uma instância do motor), `infra/mocks/smoke.sh` (simuladores dos provedores) e `infra/seed/blocklist.sh` (lista de bloqueio de demonstração).
 
 **Código compartilhado.** `motor-fraude-parent`, `contracts` e `platform-commons` são artefatos Maven versionados (`0.1.0`), publicados no GitHub Packages (repositórios privados; token em `~/.m2/settings.xml`, ver o README do pom pai). Sem registry, instale localmente, nessa ordem: `./mvnw install` em `motor-fraude-parent`, `contracts` e `platform-commons`.
 

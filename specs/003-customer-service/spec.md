@@ -1,6 +1,6 @@
 # Spec 003 — Customer service
 
-**Status:** pronta para implementação · **Prioridade:** P1 · **Depende de:** 000
+**Status:** implementada (testes e `verify` verdes; ver `docs/uso-de-ia.md`) · **Prioridade:** P1 · **Depende de:** 000
 **Passos no desenho:** 2, 2.1
 
 ## Contexto

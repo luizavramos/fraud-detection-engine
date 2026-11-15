@@ -1,6 +1,6 @@
 # Spec 001 — Receiver
 
-**Status:** pronta para implementação · **Prioridade:** P1 · **Depende de:** 000
+**Status:** implementada, com uma pendência: a rodada local de carga do receiver (T122) ainda não foi feita · **Prioridade:** P1 · **Depende de:** 000
 **Passos no desenho:** 1, 1.1, 1.2, 1.3, 1.4
 
 ## Contexto

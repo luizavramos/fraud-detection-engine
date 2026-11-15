@@ -1,6 +1,6 @@
 # Spec 002 — Gestão de regras (+ módulo `rules-kernel`)
 
-**Status:** pronta para implementação · **Prioridade:** P1 · **Depende de:** 000
+**Status:** implementada (testes e `verify` verdes; ver `docs/uso-de-ia.md`) · **Prioridade:** P1 · **Depende de:** 000
 **Passos no desenho:** 3.2, 3.3, 6
 
 ## Contexto

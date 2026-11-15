@@ -1,6 +1,6 @@
 # Spec 004 — Motor de detecção
 
-**Status:** pronta para implementação · **Prioridade:** P1 (núcleo) · **Depende de:** 000; usa o `rules-kernel` (002, Fase 2) e os tópicos de 003 e 006
+**Status:** implementada e verificada localmente (a 300 TPS); 8.000 e 25.000 TPS ficam para a nuvem · **Prioridade:** P1 (núcleo) · **Depende de:** 000; usa o `rules-kernel` (002, Fase 2) e os tópicos de 003 e 006
 **Passos no desenho:** 3, 3.1, 3.2
 
 ## Contexto

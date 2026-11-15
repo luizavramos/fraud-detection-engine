@@ -1,6 +1,6 @@
 # Spec 000 — Plataforma e contratos
 
-**Status:** pronta para implementação · **Prioridade:** fundação (bloqueia todas as outras)
+**Status:** implementada (testes e `verify` verdes; ver `docs/uso-de-ia.md`) · **Prioridade:** fundação (bloqueia todas as outras)
 
 ## Contexto
 Antes de qualquer serviço, o projeto precisa de quatro coisas:
