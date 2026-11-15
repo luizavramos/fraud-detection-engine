@@ -21,7 +21,7 @@ scrape_configs:
         labels: { service: rule-management }
       - targets: ["customer-service:8083"]
         labels: { service: customer-service }
-      - targets: ["detection-engine:8084"]
+      - targets: ["detection-engine:8084", "detection-engine-2:8084"]
         labels: { service: detection-engine }
       - targets: ["notification-service:8085"]
         labels: { service: notification-service }

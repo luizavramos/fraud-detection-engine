@@ -271,8 +271,33 @@ services:
       retries: 12
       start_period: 40s
 
+  # Segunda instância do motor, só para o teste de caos (spec 004, H6): mesmo application.id, então as duas dividem as
+  # partições; ao matar uma, a outra assume. Subir: docker compose --profile app --profile chaos up -d detection-engine-2
+  detection-engine-2:
+    profiles: ["chaos"]
+    build: ${DETECTION_ENGINE_CONTEXT:-../detection-engine}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "${DETECTION_ENGINE_2_HOST_PORT:-8094}:8084"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      HTTP_PORT: "8084"
+      STATE_DIR: /data
+    volumes:
+      - detection-engine-2-data:/data
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8084/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
 volumes:
   postgres-data:
   bank-db-data:
   detection-engine-data:
+  detection-engine-2-data:
   customer-service-data:

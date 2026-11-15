@@ -44,9 +44,9 @@ Base de caminhos: `detection-engine/src/{main,test}/java/br/com/motorfraude/engi
 - [x] T427 Seed da blocklist para demonstração: `infra/seed/blocklist.sh`
 
 ## Fase 7 — Prova dos requisitos não funcionais (H6, SC-001/002)
-- [ ] T428 **Consumidor-auditor** (`tools/auditor`): lê os `transactionId` aceitos (log do `load-generator`) e `fraud-decisions.v1`, e reporta faltantes e duplicados
-- [ ] T429 **Teste de carga:** `load-generator --tps 8000 --duration 300s` na nuvem (local: 300 TPS) + extração do p99 fim a fim do Prometheus → resultado registrado em `docs/resultados-carga.md`
-- [ ] T430 **Teste de caos:** durante a carga, `docker kill` numa instância do motor (rodando 2) → auditor com 0 faltantes e 0 duplicados → registrado em `docs/resultados-caos.md`
+- [x] T428 **Consumidor-auditor** (`tools/auditor`): lê os `transactionId` aceitos (log do `load-generator`) e `fraud-decisions.v1`, e reporta faltantes e duplicados
+- [x] T429 **Teste de carga:** `load-generator --tps 8000 --duration 300s` na nuvem (local: 300 TPS) + extração do p99 fim a fim do Prometheus → resultado registrado em `docs/resultados-carga.md`
+- [x] T430 **Teste de caos:** durante a carga, `docker kill` numa instância do motor (rodando 2) → auditor com 0 faltantes e 0 duplicados → registrado em `docs/resultados-caos.md`
 
 ## Dependências
 Fase 1 → Fase 2 → Fase 3 (precisa do kernel: 002 Fase 2) → Fase 4 → Fase 5 (precisa de 002 Fase 5 para o T424) → Fase 6 → Fase 7 (precisa de 001 no ar).

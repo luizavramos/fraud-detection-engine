@@ -49,3 +49,37 @@ na conta. O receiver só responde `202` depois do ack do Kafka, então o p99 inc
 RECEIVER_MEM_LIMIT=1g docker compose --profile app up -d --build receiver
 java -jar ../load-generator/target/load-generator.jar --tps 300 --duration 20s --warmup 10s --seed 1
 ```
+
+## Motor de detecção (spec 004): latência fim a fim a 300 TPS
+Medida pelo histograma `engine_e2e_latency_seconds` do motor (do `receivedAt`, quando o receiver aceita a transação, até a
+decisão publicada), lido no Prometheus (`histogram_quantile` sobre `increase` na janela da rodada). Mesmo ambiente do restante
+deste documento, com receiver, Kafka, Redis, Prometheus e **uma** instância do motor (1 GB) no Docker e o gerador no host.
+Meta da spec 004 (SC-001): p99 ≤ 500 ms, com meta interna de ~225 ms.
+
+| Rodada | Motor | p50 | p90 | p99 | p99,9 | Decisões ≤ 0,5 s |
+|---|---|---|---|---|---|---|
+| 300 TPS, 10 s de aquecimento + 20 s | recém-iniciado (JIT frio) | 35 ms | 343 ms | **925 ms** | 992 ms | 94 % |
+| 300 TPS, 20 s, sem aquecimento | **aquecido** | 20 ms | 83 ms | **230 ms** | 250 ms | 100 % |
+
+- **O número que vale é o do motor aquecido: p99 de 230 ms**, dentro da meta de 500 ms e perto da meta interna (225 ms). O p99
+  de 925 ms da primeira linha é partida a frio (o JIT do motor ainda esquentando nos primeiros segundos), do mesmo jeito que o
+  p99 do receiver no primeiro degrau da escada acima; nessa linha a janela inclui o aquecimento.
+- A mesma rodada aquecida teve o receiver com p99 HTTP de 1,2 s e 7 respostas 503, sem relação com o motor: é a pressão sobre
+  o Windows e o Docker (limite de portas e CPU compartilhada). A rodada anterior, com o receiver em 176 ms de p99, deu
+  p99 do motor de 925 ms por causa do frio. Na nuvem os dois serviços não competem pelo mesmo notebook.
+- **Uma rodada que colapsa contamina a seguinte.** A primeira tentativa (60 s de medição + 15 s de aquecimento = 22 mil
+  conexões) esgotou as portas efêmeras do Windows: 100 % de erros e ~15 mil transações que o Kafka gravou mesmo assim, depois
+  de o receiver ter respondido timeout. O motor gastou minutos consumindo esse atraso, e a primeira medição depois dela deu
+  p50 e p99 no último bucket (5 s); foi descartada. O limite local é de **cerca de 9 mil conexões por rodada**.
+- **Não verificado neste notebook:** 8.000 TPS por 5 min e o p99 fim a fim a 8.000 e 25.000 TPS (SC-001 da spec 004), que
+  exigem a nuvem (várias instâncias do motor, partições e disco de produção), e o impacto de um rebalance durante a carga.
+
+### Como reproduzir
+```bash
+(cd ../detection-engine && ./mvnw -q -DskipTests package) && (cd ../receiver && ./mvnw -q -DskipTests package)
+docker compose up -d kafka kafka-init redis prometheus
+RECEIVER_MEM_LIMIT=1g docker compose --profile app up -d --build receiver detection-engine
+java -jar ../load-generator/target/load-generator.jar --tps 300 --duration 20s --warmup 10s --seed 1 --accepted-log aceitas.log
+# p99 do motor na janela da rodada (substitua 59 pela duração da janela em segundos)
+curl -s -G localhost:9090/api/v1/query --data-urlencode 'query=histogram_quantile(0.99, sum by (le) (increase(engine_e2e_latency_seconds_bucket[59s])))'
+```

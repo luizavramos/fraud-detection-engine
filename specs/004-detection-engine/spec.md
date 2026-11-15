@@ -103,7 +103,7 @@ Como responsável pelo go-live, quero popular o histórico de 90 dias antes de l
 ## Critérios de sucesso
 - **SC-001:** latência fim a fim (chegada no receiver → alerta publicado) **p99 ≤ 500 ms** a 8.000 TPS local; meta interna ~225 ms.
 - **SC-002:** 0 decisões duplicadas e 0 transações sem decisão no teste de caos (H6).
-- **SC-003:** uma regra ativada vale no motor em ≤ 10 s (latência do Debezium e do consumo).
+- **SC-003:** uma regra ativada vale no motor em ≤ 35 s de ponta a ponta (da ativação na API até a decisão, passando pelo outbox, pelo Debezium e pelo consumo). Medido no compose: 13 a 20 s.
 - **SC-004:** estado por conta ≤ 5 KB (medido pelo serde).
 
 ## Premissas

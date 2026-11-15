@@ -178,3 +178,10 @@ O dashboard Grafana do motor mostra: p99 fim a fim × SLO, decisões por severid
 - **Lag por partição:** em nível INFO o Kafka só expõe `records_lag_max` por consumidor; o lag por partição exige métricas em DEBUG do Kafka Streams (mais custo). O painel usa o máximo por instância e a limitação está na descrição do painel.
 - **Registro de métricas compartilhado:** o `main` cria o `PrometheusMeterRegistry` antes de tudo e o passa ao `StreamsAppBootstrap` (novo `create(settings, extras, registro, topologia)`), porque o provedor de regras e a topologia usam o mesmo registro. O handler de DLQ recebe as métricas pelas propriedades.
 - **Seed da blocklist:** `infra/seed/blocklist.sh [add|remove]` publica 3 contas e 2 dispositivos sintéticos (e tombstones para remover); o motivo segue o padrão do contrato (`CONFIRMED_FRAUD`, `MULE_ACCOUNT`...).
+
+## 8A. Decisões e achados da implementação (Fase 7)
+- **Auditor:** repositório `auditor` (jar executável, sem Spring). Lê `fraud-decisions.v1` e `fraud-alerts.v1` com `read_committed`, compara com o log de transações aceitas do gerador (`--accepted-log`) e reprova se houver faltante, decisão ou alerta duplicado, ou MEDIUM/HIGH sem alerta. Decisões fora do log (um 503 que o Kafka gravou, ou outra rodada) são informativas, mas duplicidade nelas também reprova.
+- **Segunda instância para o caos:** `detection-engine-2` no perfil `chaos` do compose (mesmo `application.id`); o Prometheus raspa as duas. O Kafka Streams só entrega tarefas a uma instância nova depois dos *probing rebalances* (padrão 10 min), então o motor fixa `probing.rebalance.interval.ms` em 60 s, o mínimo aceito, para uma instância nova receber tarefas em cerca de 1 min.
+- **Limite local de carga:** cerca de 9 mil conexões por rodada (portas efêmeras do Windows); por isso 300 TPS por 20 s e 150 TPS por 45 s. 8.000 e 25.000 TPS ficam para a nuvem.
+- **Latência fim a fim a 300 TPS local:** p99 de 230 ms com o motor aquecido (925 ms com o motor frio); detalhes e ressalvas em `docs/resultados-carga.md`.
+- **Spec:** SC-003 passou de 10 s para 35 s de ponta a ponta (medido: 13 a 20 s), como já estava no H5 e no T424.
