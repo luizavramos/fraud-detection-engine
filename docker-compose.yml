@@ -324,12 +324,20 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      provider-mocks:
+        condition: service_started
     ports:
       - "${NOTIFICATION_SERVICE_HOST_PORT:-8085}:8085"
     environment:
       ALERTS_DB_URL: jdbc:postgresql://postgres:5432/alerts_db
       ALERTS_DB_USER: ${POSTGRES_USER:-motorfraude}
       ALERTS_DB_PASSWORD: ${POSTGRES_PASSWORD:-motorfraude}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      ANTIFRAUD_URL: http://provider-mocks:8080/antifraud-legacy/webhooks/fraud-alerts
+      PUSH_URL: http://provider-mocks:8080/push-provider/v1/push
+      EMAIL_URL: http://provider-mocks:8080/email-provider/v1/email
+      SMS_URL: http://provider-mocks:8080/sms-provider/v1/sms
+      CONTACTS_URL: http://provider-mocks:8080/contacts
     mem_limit: 512m
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8085/actuator/health/readiness"]

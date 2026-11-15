@@ -26,11 +26,11 @@ Base de caminhos: `notification-service/src/{main,test}/java/br/com/motorfraude/
 - [x] T515 Configuração Resilience4j por canal (timeout, retry, circuit breaker, bulkhead) + **teste**: circuit abre com 503 e fecha depois
 
 ## Fase 5 — Consumo e retry (MVP de ponta a ponta)
-- [ ] T516 **Teste de integração:** alerta no tópico → linha em `alerts` → webhook chamado (H1) e push/e-mail em HIGH (H2) — `AlertFlowIT.java`
-- [ ] T517 Implementar `AlertListener` (`read_committed`, ack depois do commit, despacho em virtual threads)
-- [ ] T518 **Teste:** falha de canal → mensagem em `alerts.retry.1m` → reprocesso no vencimento → `.5m` → `.30m` → `alerts.dlq` (tempos reduzidos no teste)
-- [ ] T519 Implementar `KafkaRetryScheduler` e `RetryListener` (`nack` até `dueAt`)
-- [ ] T520 Implementar o reconciliador de entregas `PENDING` antigas + teste
+- [x] T516 **Teste de integração:** alerta no tópico → linha em `alerts` → webhook chamado (H1) e push/e-mail em HIGH (H2) — `AlertFlowIT.java`
+- [x] T517 Implementar `AlertListener` (`read_committed`, ack depois do commit, despacho em virtual threads)
+- [x] T518 **Teste:** falha de canal → mensagem em `alerts.retry.1m` → reprocesso no vencimento → `.5m` → `.30m` → `alerts.dlq` (tempos reduzidos no teste)
+- [x] T519 Implementar `KafkaRetryScheduler` e `RetryListener` (`nack` até `dueAt`)
+- [x] T520 Implementar o reconciliador de entregas `PENDING` antigas + teste
 
 **Checkpoint:** alertas do motor chegam ao antifraude e ao cliente.
 
