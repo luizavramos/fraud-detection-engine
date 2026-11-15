@@ -35,9 +35,9 @@ Base de caminhos: `notification-service/src/{main,test}/java/br/com/motorfraude/
 **Checkpoint:** alertas do motor chegam ao antifraude e ao cliente.
 
 ## Fase 6 — H3/H4 provas e H6 API
-- [ ] T521 **Teste SC-002:** reentregar 1.000 alertas → 0 chamadas duplicadas nos simuladores (WireMock `verify`)
-- [ ] T522 **Teste SC-003:** push em 503 por 5 min (tempo reduzido) → 100% dos webhooks entregues
-- [ ] T523 **Testes** + implementação de `GET /v1/alerts` (cursor) e `POST /v1/alerts/{id}/feedback`
+- [x] T521 **Teste SC-002:** reentregar 1.000 alertas → 0 chamadas duplicadas nos simuladores (WireMock `verify`)
+- [x] T522 **Teste SC-003:** push em 503 por 5 min (tempo reduzido) → 100% dos webhooks entregues
+- [x] T523 **Testes** + implementação de `GET /v1/alerts` (cursor) e `POST /v1/alerts/{id}/feedback`
 
 ## Fase 7 — Observabilidade
 - [ ] T524 Métricas do plan §5 + painel no Grafana (entregas por canal e resultado, estado dos circuit breakers, DLQ, latência alerta→entrega)
