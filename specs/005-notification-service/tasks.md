@@ -8,11 +8,11 @@ Base de caminhos: `notification-service/src/{main,test}/java/br/com/motorfraude/
 - [x] T503 [P] Adicionar o serviço ao compose (porta 8085) e ao Prometheus
 
 ## Fase 2 — Domínio e casos de uso (H1, H2, H3, H5)
-- [ ] T504 **Testes** de `ChannelPolicy` e `SuppressionPolicy` — `domain/*Test.java`
-- [ ] T505 Implementar `Alert`, `Delivery`, `Channel`, `DeliveryStatus`, `ChannelPolicy` e `SuppressionPolicy`
-- [ ] T506 Portas `AlertRepository`, `DeliveryRepository`, `NotificationChannel`, `ContactDirectory` e `RetryScheduler`, com fakes
-- [ ] T507 **Testes** de `RegisterAlertUseCase` (idempotente; entregas por severidade; supressão) e de `DispatchDeliveryUseCase` (SENT não reenvia; falha → retry; esgotou → DLQ; PUSH HIGH esgotado → SMS; contato ausente → FAILED sem retry)
-- [ ] T508 Implementar os dois casos de uso
+- [x] T504 **Testes** de `ChannelPolicy` e `SuppressionPolicy` — `domain/*Test.java`
+- [x] T505 Implementar `Alert`, `Delivery`, `Channel`, `DeliveryStatus`, `ChannelPolicy` e `SuppressionPolicy`
+- [x] T506 Portas `AlertRepository`, `DeliveryRepository`, `NotificationChannel`, `ContactDirectory` e `RetryScheduler`, com fakes
+- [x] T507 **Testes** de `RegisterAlertUseCase` (idempotente; entregas por severidade; supressão) e de `DispatchDeliveryUseCase` (SENT não reenvia; falha → retry; esgotou → DLQ; PUSH HIGH esgotado → SMS; contato ausente → FAILED sem retry)
+- [x] T508 Implementar os dois casos de uso
 
 ## Fase 3 — Persistência
 - [ ] T509 Flyway `V1__schema.sql` (plan §4) + **teste de integração** (Testcontainers Postgres) do `ON CONFLICT DO NOTHING` e da consulta de supressão
