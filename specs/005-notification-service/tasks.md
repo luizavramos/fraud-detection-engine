@@ -40,7 +40,7 @@ Base de caminhos: `notification-service/src/{main,test}/java/br/com/motorfraude/
 - [x] T523 **Testes** + implementação de `GET /v1/alerts` (cursor) e `POST /v1/alerts/{id}/feedback`
 
 ## Fase 7 — Observabilidade
-- [ ] T524 Métricas do plan §5 + painel no Grafana (entregas por canal e resultado, estado dos circuit breakers, DLQ, latência alerta→entrega)
+- [x] T524 Métricas do plan §5 + painel no Grafana (entregas por canal e resultado, estado dos circuit breakers, DLQ, latência alerta→entrega)
 
 ## Dependências
 Fase 1 → Fase 2 → Fase 3 → Fase 4 → Fase 5 → (Fases 6 e 7).

@@ -77,7 +77,7 @@ O projeto segue uma estrutura de microsserviços, **um repositório por serviço
 | `customer-service` | Perfil do cliente a partir do CDC do banco legado (spec 003, porta 8083) |
 | `detection-engine` | Motor de detecção (spec 004, porta 8084; `--profile app`, e `--profile chaos` para a 2ª instância) |
 | `auditor` | Consumidor-auditor: uma decisão por transação aceita, nenhum alerta duplicado (spec 004, H6) |
-| `notification-service` | Notificações ao antifraude e ao cliente (spec 005, porta 8085; em implementação) |
+| `notification-service` | Notificações ao antifraude e ao cliente (spec 005, porta 8085; `--profile app`) |
 
 O `transaction-service` (spec 006) ganha o repositório quando for implementado. Provas e roteiros neste repositório: `infra/h5-acceptance.sh` (regras a quente), `infra/chaos-h6.sh` (derrubar uma instância do motor), `infra/mocks/smoke.sh` (simuladores dos provedores) e `infra/seed/blocklist.sh` (lista de bloqueio de demonstração).
 

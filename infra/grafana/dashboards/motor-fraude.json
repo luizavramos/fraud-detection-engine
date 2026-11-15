@@ -4,7 +4,7 @@
   "tags": ["motor-fraude"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 5,
+  "version": 6,
   "editable": true,
   "refresh": "10s",
   "time": { "from": "now-1h", "to": "now" },
@@ -16,7 +16,7 @@
       "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
       "options": {
         "mode": "markdown",
-        "content": "Painéis entram junto com cada serviço (specs 001–006). Já disponível: **Receiver** (spec 001), **Gestão de regras** (spec 002), **Perfil do cliente** (spec 003) e **Motor de detecção** (spec 004). Ainda por vir: p99 fim a fim do motor, alertas por severidade, lag de consumo, entregas por canal."
+        "content": "Painéis entram junto com cada serviço (specs 001–006). Já disponível: **Receiver** (spec 001), **Gestão de regras** (spec 002), **Perfil do cliente** (spec 003), **Motor de detecção** (spec 004) e **Notificações** (spec 005). Ainda por vir: o serviço de transações (spec 006)."
       }
     },
     {
@@ -416,6 +416,81 @@
         { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(engine_dlq_total[1m]))", "legendFormat": "DLQ" },
         { "refId": "D", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(engine_context_partial_total[1m]))", "legendFormat": "contexto parcial" },
         { "refId": "E", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (reason) (rate(engine_ruleset_load_failures_total[5m]))", "legendFormat": "falha de carga {{reason}}" }
+      ]
+    },
+    {
+      "id": 24,
+      "type": "row",
+      "title": "Notificações (spec 005)",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 87 },
+      "panels": []
+    },
+    {
+      "id": 25,
+      "type": "timeseries",
+      "title": "Entregas por segundo, por canal e resultado",
+      "description": "sent = entregue ao provedor; retry = falha transitória, reagendada em alerts.retry.*; failed = recusa definitiva ou tentativas esgotadas; suppressed = cliente já avisado nos últimos 10 min (o antifraude nunca é suprimido).",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 88 },
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (channel, result) (rate(notification_deliveries_total{service=\"notification-service\"}[1m]))", "legendFormat": "{{channel}} {{result}}" }
+      ]
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "Latência do alerta detectado até a entrega: p99 e p50, por canal",
+      "description": "Do detectedAt do alerta até o provedor aceitar. Inclui o tempo de fila no Kafka, o registro no banco e as tentativas; entregas que passaram por retry aparecem como cauda (1, 5 e 30 min).",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 88 },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line", "fillOpacity": 0 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.99, sum by (le, channel) (rate(notification_alert_to_delivery_seconds_bucket{service=\"notification-service\"}[5m])))", "legendFormat": "p99 {{channel}}" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.5, sum by (le, channel) (rate(notification_alert_to_delivery_seconds_bucket{service=\"notification-service\"}[5m])))", "legendFormat": "p50 {{channel}}" }
+      ]
+    },
+    {
+      "id": 27,
+      "type": "timeseries",
+      "title": "Circuit breakers por canal (1 = aberto ou meia-aberto)",
+      "description": "Aberto = o canal está sendo poupado depois de falhas seguidas do provedor; as entregas dele vão para o retry por tópicos. Os canais são independentes: um aberto não pode abrir outro.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 96 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "max": 1, "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (name, state) (resilience4j_circuitbreaker_state{service=\"notification-service\", state=~\"open|half_open|forced_open\"})", "legendFormat": "{{name}} {{state}}" }
+      ]
+    },
+    {
+      "id": 28,
+      "type": "timeseries",
+      "title": "DLQ, alertas inválidos e entregas órfãs recuperadas (últimos 5 min)",
+      "description": "DLQ por canal = entrega que esgotou 1 min, 5 min e 30 min de retry (o SMS entra como reserva do push em HIGH); INVALID_ALERT = mensagem de fraud-alerts.v1 fora do contrato; reconciliadas = PENDING parada despachada pelo reconciliador (queda depois de confirmar o offset). Tudo deveria ficar perto de zero.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 96 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (channel) (increase(notification_dlq_total{service=\"notification-service\"}[5m]))", "legendFormat": "DLQ {{channel}}" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(increase(notification_pending_reconciled_total{service=\"notification-service\"}[5m]))", "legendFormat": "reconciliadas" }
+      ]
+    },
+    {
+      "id": 29,
+      "type": "timeseries",
+      "title": "Feedback do analista por regra e veredito (última hora)",
+      "description": "Quantos alertas cada regra teve marcados como CONFIRMED_FRAUD ou FALSE_POSITIVE. Regra com muito FALSE_POSITIVE é candidata a ajuste de peso ou a modo sombra.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 104 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (rule, verdict) (increase(alerts_feedback_total{service=\"notification-service\"}[1h]))", "legendFormat": "{{rule}} {{verdict}}" }
       ]
     }
   ]

@@ -1,6 +1,6 @@
 # Spec 005 — Notificações (notification service)
 
-**Status:** em implementação (Fases 1 e 2 de 7: módulo, simuladores, domínio e casos de uso) · **Prioridade:** P1 · **Depende de:** 000; consome `fraud-alerts.v1` (004)
+**Status:** implementada e verificada com Kafka, Postgres e WireMock em Testcontainers (Fases 1 a 7); ainda não exercitada na pilha do compose (`--profile app` com os `provider-mocks`), e sem medição de carga (etapa futura) · **Prioridade:** P1 · **Depende de:** 000; consome `fraud-alerts.v1` (004)
 **Passos no desenho:** 5, 5.1, 5.2, 5.3
 
 ## Contexto
