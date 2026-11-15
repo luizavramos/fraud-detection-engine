@@ -95,3 +95,10 @@ customer-service/src/main/java/br/com/motorfraude/customer/
 - **Remoção no CDC:** com a identidade de réplica padrão do Postgres, o `before` de um `d` só traz a chave primária (as demais colunas vêm vazias ou em 1970, fixture real). Os mapeadores não leem o `before`: o `d` vira valor nulo na tabela e a chave do registro dá a conta.
 - **Dispositivos:** `KTable` por (conta|dispositivo) → `groupBy(conta)` → `aggregate` com somador e subtrator (`KnownDevices.add/remove`). O instante do evento do conjunto é derivado dos dispositivos presentes, porque o subtrator não recebe o horário da remoção; assim reconstruir tudo dá o mesmo resultado.
 - **Teste de privacidade em dois níveis:** 10 mil clientes pelos mapeadores e pelo projetor (rápido) e 300 pela topologia completa com o estado inspecionado; o `TopologyTestDriver` custa ~14 ms por evento no Windows, o que tornaria 10 mil pela topologia um teste de vários minutos.
+
+## 4C. Decisões da implementação (Fase 4)
+- **Métricas por porta:** `application/gateway/CustomerMetrics` (com `NOOP` para os testes) e o adaptador `MicrometerCustomerMetrics`; o `StreamsAppBootstrap` ganhou `create(settings, registry -> topology)` para a topologia receber o mesmo registro que o app expõe. É o que preenche a camada `application` e dispensa o `archunit.properties` temporário.
+- **Rótulos:** `customer_cdc_events_total{table,op}` (além do `op` do plano, a tabela distingue clientes de dispositivos), `customer_profiles_published_total{kind=profile|tombstone}` e `customer_cdc_lag_seconds` como histograma.
+- **Evento malformado:** descartado e contado em `op="invalid"`, em vez de derrubar o serviço (o `SHUTDOWN_CLIENT` do bootstrap reservado a erros inesperados).
+- **Imagem:** Temurin padrão, não Alpine: o RocksDB do Kafka Streams precisa de glibc/libstdc++ (o serviço caiu em `UnsatisfiedLinkError` na primeira execução real).
+- **Reconstrução (H4):** `rebuild-customers-cdc.sh` para, apaga offsets e slot e retoma o conector, sem removê-lo (recriar logo após remover dá 500 no Connect).

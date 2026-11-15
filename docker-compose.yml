@@ -224,7 +224,7 @@ services:
       start_period: 25s
 
   # Perfil do cliente (spec 003): Kafka Streams sobre o CDC do banco legado. Antes, no repositório customer-service ao lado:
-  # ./mvnw -DskipTests package (o Dockerfile chega com a Fase 4). Registrar o conector: sh infra/connect/register-connectors.sh
+  # ./mvnw -DskipTests package. Registrar o conector: sh infra/connect/register-connectors.sh
   customer-service:
     profiles: ["app"]
     build: ${CUSTOMER_SERVICE_CONTEXT:-../customer-service}

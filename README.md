@@ -34,7 +34,7 @@ Terminando com `0 falhas`, o ambiente está pronto.
 | Postgres do projeto | `localhost:5432` | bancos `rules_db` e `alerts_db`; usuário e senha `motorfraude`; `wal_level=logical` (o Debezium lê a outbox do `rules_db`) |
 | Banco legado (fonte do CDC) | `localhost:5433` | banco `bank`, usuário e senha `bank`; 10 mil clientes **sintéticos** |
 | Redis | `localhost:6379` | |
-| Kafka Connect + Debezium | `localhost:18083` | conector `rule-sets-outbox` (registre com `sh infra/connect/register-rule-sets-outbox.sh`, depois de subir o rule-management); o conector `customers-cdc` (spec 003) registra com `sh infra/connect/register-connectors.sh`; o da 006 ainda não existe |
+| Kafka Connect + Debezium | `localhost:18083` | conector `rule-sets-outbox` (registre com `sh infra/connect/register-rule-sets-outbox.sh`, depois de subir o rule-management); o conector `customers-cdc` (spec 003) registra com `sh infra/connect/register-connectors.sh` e se refaz com `sh infra/connect/rebuild-customers-cdc.sh`; o da 006 ainda não existe |
 | Prometheus | `localhost:9090` | alvos dos serviços 8081–8086 aparecem como DOWN até as specs 001–006 |
 | Grafana | `localhost:3000` | usuário `admin`, senha `admin`; dashboard "Motor de fraude" já provisionado |
 

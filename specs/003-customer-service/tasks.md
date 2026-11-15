@@ -21,9 +21,9 @@ Base de caminhos: `customer-service/src/{main,test}/java/br/com/motorfraude/cust
 **Checkpoint:** o motor (004) já pode consumir `customer-profile.v1`.
 
 ## Fase 4 — Integração e operação
-- [ ] T311 **Teste de integração** (Testcontainers: Postgres com `wal_level=logical` + Kafka + Debezium Connect): `UPDATE` → perfil em ≤ 5 s (SC-001) — `CustomerServiceIT.java`
-- [ ] T312 Métricas `customer_cdc_events_total{op}`, `customer_profiles_published_total` e `customer_cdc_lag_seconds` + painel no Grafana
-- [ ] T313 Documentar a reconstrução (H4): como reiniciar o conector com snapshot — `customer-service/README.md`
+- [x] T311 **Teste de integração** (Testcontainers: Postgres com `wal_level=logical` + Kafka + Debezium Connect): `UPDATE` → perfil em ≤ 5 s (SC-001) — `CustomerServiceIT.java`
+- [x] T312 Métricas `customer_cdc_events_total{op}`, `customer_profiles_published_total` e `customer_cdc_lag_seconds` + painel no Grafana
+- [x] T313 Documentar a reconstrução (H4): como reiniciar o conector com snapshot — `customer-service/README.md`
 
 ## Dependências
 T301 → T302 → Fase 2 → Fase 3 → Fase 4. T303 pode correr junto com a Fase 2.

@@ -6,16 +6,19 @@ set -eu
 
 CONNECT_URL="${CONNECT_URL:-http://localhost:18083}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
+OUT="$(mktemp)"
+trap 'rm -f "$OUT"' EXIT
 [ "$#" -gt 0 ] || set -- customers-cdc
 
 for NAME in "$@"; do
   registered=0
   for attempt in 1 2 3 4 5 6; do
-    code="$(curl -s -o /tmp/connect-register.out -w '%{http_code}' -X PUT -H 'Content-Type: application/json' \
-      --data-binary "@$DIR/$NAME.json" "$CONNECT_URL/connectors/$NAME/config" || echo 000)"
+    code="$(curl -s -o "$OUT" -w '%{http_code}' -X PUT -H 'Content-Type: application/json' \
+      --data-binary "@$DIR/$NAME.json" "$CONNECT_URL/connectors/$NAME/config" || true)"
+    code="${code:-000}"
     case "$code" in
       200|201) registered=1; break ;;
-      *) echo "$NAME, tentativa $attempt: HTTP $code $(head -c 200 /tmp/connect-register.out 2>/dev/null)" >&2; sleep 5 ;;
+      *) echo "$NAME, tentativa $attempt: HTTP $code $(tail -c 300 "$OUT" 2>/dev/null)" >&2; sleep 5 ;;
     esac
   done
   if [ "$registered" -ne 1 ]; then
