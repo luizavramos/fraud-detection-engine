@@ -52,6 +52,13 @@ topic_has() { # tópico texto -> 0 se alguma mensagem (lida só do que foi confi
 }
 wait_topic() { desc="$1"; limit="$2"; shift 2; wait_until "$desc" "$limit" topic_has "$@"; }
 
+# sobe serviços da aplicação; só reconstrói a imagem se ela não existir (ou BUILD=1), para não depender do Docker Hub à toa
+app_up() {
+  flags=""
+  for s in "$@"; do docker image inspect "motor-fraude_$s" >/dev/null 2>&1 || flags="--build"; done
+  [ "${BUILD:-0}" = "1" ] && flags="--build"
+  docker compose --profile app up -d $flags "$@"
+}
 package() { # repositório
   jar="$(ls "$CODE/$1"/target/"$1"*.jar 2>/dev/null | head -1 || true)"
   if [ "${BUILD:-0}" = "1" ] || [ -z "$jar" ]; then
@@ -76,33 +83,44 @@ wait_until "Kafka Connect" 240 curl -sf -m 5 http://localhost:18083/connectors
 wait_until "tópicos criados" 120 sh -c 'test "$(docker inspect -f "{{.State.Status}} {{.State.ExitCode}}" "$(docker compose ps -a -q kafka-init)")" = "exited 0"'
 
 say "Gestão de regras e a outbox (o conjunto v1, já semeado, chega ao tópico rule-sets.v1)"
-docker compose --profile app up -d --build rule-management
+app_up rule-management
 wait_until "rule-management" 180 ready 8082
 sh infra/connect/register-rule-sets-outbox.sh
 wait_topic "conjunto de regras em rule-sets.v1" 90 rule-sets.v1 '"version"'
 
 say "Perfil do cliente (CDC do banco legado -> customer-service)"
 sh infra/connect/register-connectors.sh customers-cdc
-docker compose --profile app up -d --build customer-service
+app_up customer-service
 wait_until "customer-service" 180 ready 8083
 wait_topic "perfis do banco legado em cdc.bank.customers" 90 cdc.bank.customers '"customer_id"\|"customerId"\|"op"'
 sleep 15   # o customer-service consome o snapshot do CDC (10 mil clientes) para o estado local
-if [ "${WITH_BACKFILL:-0}" != "1" ] && [ "${KEEP_ALL:-0}" != "1" ]; then
+if [ "${WITH_BACKFILL:-0}" = "1" ]; then
+  # O backfill vem ANTES do motor: o histórico fica no tópico transaction-history-backfill.v1 (7 dias) e o motor o lê quando
+  # subir. Assim Connect, banco legado e transaction-service não precisam coexistir com motor, notificações e receiver.
+  say "Carga de histórico (spec 006): $N transações do banco legado para o tópico do motor"
+  CUTOVER_AT="${CUTOVER_AT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+  export CUTOVER_AT
+  echo "  CUTOVER_AT=$CUTOVER_AT, N=$N"
+  ANCHOR="$CUTOVER_AT" N="$N" sh infra/seed/transactions.sh
+  app_up transaction-service
+  wait_until "transaction-service" 180 ready 8086
+  sh infra/connect/register-connectors.sh transactions-cdc
+  wait_until "backfill COMPLETED" 300 sh -c 'curl -sf -m 5 http://localhost:8096/v1/backfill/status | grep -q COMPLETED'
+  curl -s -m 5 http://localhost:8096/v1/backfill/status; echo
+  wait_topic "histórico em transaction-history-backfill.v1" 60 transaction-history-backfill.v1 '"transactionId"'
+  docker compose stop transaction-service
+fi
+if [ "${KEEP_ALL:-0}" != "1" ]; then
   # Com 4 GB no Docker, motor + notificações + receiver não cabem junto do Connect e do banco legado (o Docker travou com
-  # i/o timeout). O perfil já está no estado do customer-service e as regras no tópico; o backfill (WITH_BACKFILL=1) e a
-  # mudança de regras a quente precisam deles, por isso KEEP_ALL=1 também os mantém.
+  # i/o timeout). O perfil já está no estado do customer-service, as regras no tópico e, se pedido, o histórico também;
+  # a mudança de regras a quente e um novo snapshot precisam deles, por isso KEEP_ALL=1 os mantém.
   echo "  liberando memória: parando Connect e banco legado (KEEP_ALL=1 mantém)"
   docker compose stop connect bank-db
 fi
 
 say "Motor, notificações e receiver"
 sh infra/seed/blocklist.sh add >/dev/null
-if [ "${WITH_BACKFILL:-0}" = "1" ]; then
-  CUTOVER_AT="${CUTOVER_AT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
-  export CUTOVER_AT
-  echo "  backfill ligado: CUTOVER_AT=$CUTOVER_AT, N=$N"
-fi
-docker compose --profile app up -d --build detection-engine notification-service receiver
+app_up detection-engine notification-service receiver
 wait_until "detection-engine" 240 ready 8084
 wait_until "notification-service" 180 ready 8085
 wait_until "receiver" 180 ready 8081
@@ -138,16 +156,6 @@ anti="$(count antifraud-legacy)"
 push="$(count push-provider)"
 check "antifraude recebeu o alerta uma vez (chamadas: $anti)" "$([ "$anti" -eq 1 ] && echo 0 || echo 1)"
 check "cliente recebeu o aviso HIGH por push (chamadas: $push)" "$([ "$push" -ge 1 ] && echo 0 || echo 1)"
-
-if [ "${WITH_BACKFILL:-0}" = "1" ]; then
-  say "Carga de histórico (spec 006): $N transações do banco legado para o motor"
-  ANCHOR="$CUTOVER_AT" N="$N" sh infra/seed/transactions.sh
-  docker compose --profile app up -d --build transaction-service
-  wait_until "transaction-service" 180 ready 8086
-  sh infra/connect/register-connectors.sh transactions-cdc
-  wait_until "backfill COMPLETED" 300 sh -c 'curl -sf -m 5 http://localhost:8096/v1/backfill/status | grep -q COMPLETED'
-  curl -s -m 5 http://localhost:8096/v1/backfill/status; echo
-fi
 
 echo
 echo "  (etapa $step: $(( $(date +%s) - TS ))s)"; echo "Tempo total: $(( $(date +%s) - T0 ))s"

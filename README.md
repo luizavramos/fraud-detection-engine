@@ -103,7 +103,9 @@ imagens e o `./mvnw package` de cada repositório não entram nessa conta, e a p
 
 Variáveis: `BUILD=1` refaz os JARs; `WITH_BACKFILL=1` inclui a carga de histórico da spec 006 (2.000 transações por
 padrão, `N=...` muda); `WITH_OBS=1` sobe também Prometheus e Grafana; `KEEP_ALL=1` não para o Connect e o banco legado
-depois de carregar o perfil do cliente (`WITH_BACKFILL=1` também os mantém).
+depois de carregar o perfil do cliente (e do backfill, se pedido). Com `WITH_BACKFILL=1` o script semeia as transações no
+banco legado, sobe o `transaction-service`, registra o conector `transactions-cdc`, espera o status `COMPLETED` e confere que
+o tópico `transaction-history-backfill.v1` recebeu o histórico; só depois sobe o motor, que lê o histórico do tópico (7 dias).
 
 Sobre memória: com 4 GB no Docker, o conjunto inteiro não cabe de uma vez. Por isso o script sobe a infraestrutura em etapas
 e, depois do perfil do cliente carregado, **para o Connect e o banco legado** antes de subir motor, notificações e receiver
@@ -113,7 +115,9 @@ Se o Docker Desktop cair no meio (aconteceu várias vezes neste notebook), reini
 
 **O que o script prova e o que não prova.** Prova o caminho de ponta a ponta com duas transações e os simuladores dos
 provedores. Não mede latência nem carga (ver "Teste de carga"), não exercita regras a quente (`infra/h5-acceptance.sh`) nem
-o caos (`infra/chaos-h6.sh`). A parte `WITH_BACKFILL=1` ainda **não foi rodada** pelo script.
+o caos (`infra/chaos-h6.sh`). Com `WITH_BACKFILL=1` prova o transporte do backfill (status `COMPLETED`, registros no
+tópico), mas **não confere que o motor usou o histórico**: isso está provado nos testes do `detection-engine` e no ensaio
+H3-B da spec 006 (`infra/backfill-verify.sh`).
 
 Se rodar no Git Bash do Windows: o script exporta `MSYS_NO_PATHCONV=1` (necessário para os caminhos `/opt/kafka/...` do
 `docker compose exec`), e com ele o `curl -o` falha com código 23. Por isso os scripts de `infra/` evitam `-o` ou chamam o
