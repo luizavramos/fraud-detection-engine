@@ -14,8 +14,8 @@ Base de caminhos: `transaction-service/src/{main,test}/java/br/com/motorfraude/t
 - [x] T607 Implementar o mapper e o `BackfillTransactionHistoryUseCase`
 
 ## Fase 3 — Topologia e status
-- [ ] T608 **Testes** `TopologyTestDriver`: janela, chave, `COMPLETED` no evento `snapshot=last`; todo registro emitido passa em `ContractAssertions.assertProduces("transaction-history-record.v1", …)`
-- [ ] T609 Implementar `TopologyFactory`, `HistoryRecordSerde`, limitador de taxa e `BackfillStatus` + `GET /v1/backfill/status`
+- [x] T608 **Testes** `TopologyTestDriver`: janela, chave, `COMPLETED` no evento `snapshot=last`; todo registro emitido passa em `ContractAssertions.assertProduces("transaction-history-record.v1", …)`
+- [x] T609 Implementar `TopologyFactory`, `HistoryRecordSerde`, limitador de taxa e `BackfillStatus` + `GET /v1/backfill/status`
 
 ## Fase 4 — Prova
 - [ ] T610 **Teste de integração** (Testcontainers + Debezium): 10 mil transações → registros corretos e sem dado pessoal (SC-002)

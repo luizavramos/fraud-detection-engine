@@ -357,10 +357,12 @@ services:
         condition: service_healthy
     ports:
       - "${TRANSACTION_SERVICE_HOST_PORT:-8086}:8086"
+      - "${TRANSACTION_SERVICE_STATUS_HOST_PORT:-8096}:8096"
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       HTTP_PORT: "8086"
       STATE_DIR: /data
+      STATUS_PORT: "8096"
       CUTOVER_AT: ${CUTOVER_AT:-}
     volumes:
       - transaction-service-data:/data
