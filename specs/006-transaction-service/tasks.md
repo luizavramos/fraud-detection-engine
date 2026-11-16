@@ -8,10 +8,10 @@ Base de caminhos: `transaction-service/src/{main,test}/java/br/com/motorfraude/t
 - [x] T603 [P] Gerar ~1 milhão de transações sintéticas em 120 dias no `infra/bank-db/init.sql` (ou script de seed separado)
 
 ## Fase 2 — Domínio e mapeamento
-- [ ] T604 **Testes** de `HistoryWindow` (bordas) — `domain/HistoryWindowTest.java`
-- [ ] T605 Implementar `HistoryWindow` e `HistoryRecord`
-- [ ] T606 **Testes** do `DebeziumTransactionMapper` (campos permitidos; ignora `op` ≠ `r`), com fixtures reais
-- [ ] T607 Implementar o mapper e o `BackfillTransactionHistoryUseCase`
+- [x] T604 **Testes** de `HistoryWindow` (bordas) — `domain/HistoryWindowTest.java`
+- [x] T605 Implementar `HistoryWindow` e `HistoryRecord`
+- [x] T606 **Testes** do `DebeziumTransactionMapper` (campos permitidos; ignora `op` ≠ `r`), com fixtures reais
+- [x] T607 Implementar o mapper e o `BackfillTransactionHistoryUseCase`
 
 ## Fase 3 — Topologia e status
 - [ ] T608 **Testes** `TopologyTestDriver`: janela, chave, `COMPLETED` no evento `snapshot=last`; todo registro emitido passa em `ContractAssertions.assertProduces("transaction-history-record.v1", …)`

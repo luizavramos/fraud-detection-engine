@@ -1,6 +1,6 @@
 # Spec 006 — Transaction service
 
-**Status:** em implementação (Fase 1 de 4: módulo, conector, compose e seed) · **Prioridade:** P2 · **Depende de:** 000; alimenta o `BackfillProcessor` do 004
+**Status:** em implementação (Fases 1 e 2 de 4: módulo, conector, compose, seed, domínio e mapeamento) · **Prioridade:** P2 · **Depende de:** 000; alimenta o `BackfillProcessor` do 004
 **Passos no desenho:** 2, 2.2
 
 ## Contexto
