@@ -98,10 +98,8 @@ export JAVA_HOME="C:/Program Files/Java/jdk-21.0.12.1"   # só se o ./mvnw recla
 sh infra/run-all.sh
 ```
 
-Termina com `OK: o processo inteiro funcionou (0 falhas)` e imprime o tempo de cada etapa e o total. Medido num notebook de
-8 GB com o Docker em 4 GB e as imagens já construídas: **cerca de 2,5 minutos** (infraestrutura ~35 a 55 s, regras e CDC
-~15 s cada, serviços ~30 s, conferência ~45 s). O primeiro build das imagens e o `./mvnw package` de cada repositório ficam
-de fora, e a primeira vez baixa as imagens.
+Termina com `OK: o processo inteiro funcionou (0 falhas)` e imprime o tempo de cada etapa e o total. O primeiro build das
+imagens e o `./mvnw package` de cada repositório não entram nessa conta, e a primeira vez baixa as imagens.
 
 Variáveis: `BUILD=1` refaz os JARs; `WITH_BACKFILL=1` inclui a carga de histórico da spec 006 (2.000 transações por
 padrão, `N=...` muda); `WITH_OBS=1` sobe também Prometheus e Grafana; `KEEP_ALL=1` não para o Connect e o banco legado
