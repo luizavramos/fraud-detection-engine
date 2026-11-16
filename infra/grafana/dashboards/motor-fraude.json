@@ -4,7 +4,7 @@
   "tags": ["motor-fraude"],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 7,
+  "version": 8,
   "editable": true,
   "refresh": "10s",
   "time": { "from": "now-1h", "to": "now" },
@@ -504,10 +504,10 @@
     {
       "id": 31,
       "type": "stat",
-      "title": "Registros publicados no histórico (desde a partida)",
+      "title": "Publicados no histórico",
       "description": "Total de transações do snapshot que entraram na janela de 90 dias e foram publicadas em transaction-history-backfill.v1. Depois que a carga termina o valor para de crescer; o estado COMPLETED está em GET /v1/backfill/status (porta 8096).",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 113 },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 113 },
       "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
       "targets": [
@@ -520,7 +520,7 @@
       "title": "Velocidade da carga: publicados e descartados por segundo",
       "description": "published = foi para o motor (limitado a 20 mil/s); out_of_window = fora de cutoverAt − 90 d … cutoverAt; not_snapshot = c/u/d, que o backfill ignora; invalid_record = valor ≤ 0, que o contrato não aceita; malformed = evento do CDC ilegível.",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 6, "w": 18, "x": 6, "y": 113 },
+      "gridPos": { "h": 8, "w": 18, "x": 6, "y": 113 },
       "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
       "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi" } },
       "targets": [

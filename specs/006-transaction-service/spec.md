@@ -1,6 +1,6 @@
 # Spec 006 — Transaction service
 
-**Status:** implementada e validada no compose (Fases 1 a 4 de 4); não medido: o limite de 20 mil registros/s contra o motor sob tráfego ao vivo · **Prioridade:** P2 · **Depende de:** 000; alimenta o `BackfillProcessor` do 004
+**Status:** implementada e validada no compose (Fases 1 a 4 de 4, mais ensaios do §10 do plano: H3-B, limitador a 2 mil/s, Grafana); não medido: o limite de 20 mil registros/s contra o motor sob tráfego ao vivo · **Prioridade:** P2 · **Depende de:** 000; alimenta o `BackfillProcessor` do 004
 **Passos no desenho:** 2, 2.2
 
 ## Contexto

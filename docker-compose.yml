@@ -363,6 +363,7 @@ services:
       HTTP_PORT: "8086"
       STATE_DIR: /data
       STATUS_PORT: "8096"
+      BACKFILL_RATE_PER_SECOND: ${BACKFILL_RATE_PER_SECOND:-20000}
       CUTOVER_AT: ${CUTOVER_AT:-}
     volumes:
       - transaction-service-data:/data
