@@ -67,6 +67,7 @@ Meta da spec 004 (SC-001): p99 ≤ 500 ms, com meta interna de ~225 ms.
 - A mesma rodada aquecida teve o receiver com p99 HTTP de 1,2 s e 7 respostas 503, sem relação com o motor: é a pressão sobre
   o Windows e o Docker (limite de portas e CPU compartilhada). A rodada anterior, com o receiver em 176 ms de p99, deu
   p99 do motor de 925 ms por causa do frio. Com máquinas separadas essa competição por CPU deixaria de existir, mas isso não foi medido.
+- **Ensaio com o motor de pé (spec 006): o p99 de ~2,2 s era artefato do produtor de teste.** O `kafka-console-producer` segura cada lote por `linger.ms=1000` e a latência é medida desde o timestamp do registro. Com `linger.ms=0`, só tráfego ao vivo a ~200 comandos/s, motor aquecido (INFO, 1 GiB): p50 7 ms, p90 23 ms, p99 88 ms (`infra/engine-latency.sh`). Pico de CPU durante o envio: motor 43%, Kafka 288%. Uma rodada, longe dos 8.000 TPS.
 - **Uma rodada que colapsa contamina a seguinte.** A primeira tentativa (60 s de medição + 15 s de aquecimento = 22 mil
   conexões) esgotou as portas efêmeras do Windows: 100 % de erros e ~15 mil transações que o Kafka gravou mesmo assim, depois
   de o receiver ter respondido timeout. O motor gastou minutos consumindo esse atraso, e a primeira medição depois dela deu
