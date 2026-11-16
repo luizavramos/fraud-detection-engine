@@ -18,10 +18,10 @@ Base de caminhos: `transaction-service/src/{main,test}/java/br/com/motorfraude/t
 - [x] T609 Implementar `TopologyFactory`, `HistoryRecordSerde`, limitador de taxa e `BackfillStatus` + `GET /v1/backfill/status`
 
 ## Fase 4 — Prova
-- [ ] T610 **Teste de integração** (Testcontainers + Debezium): 10 mil transações → registros corretos e sem dado pessoal (SC-002)
-- [ ] T611 **Prova do SC-001, em processo no motor** (decisão do usuário, sem mexer no código do motor): no `detection-engine`, um teste alimenta a topologia real com os registros que o `transaction-service` gera sobre 100 contas de referência (fixture produzida pelo próprio serviço) e compara `avgAmount30d` com o SQL do banco legado, diferença 0. No compose, prova só o transporte: contagem e conteúdo do tópico `transaction-history-backfill.v1`, sem dado pessoal. O motor não expõe features fora das regras e continua assim.
-- [ ] T612 Documentar o procedimento de refazer o backfill (H3) e o `cutoverAt` — `transaction-service/README.md`
-- [ ] T613 Métricas de progresso (`backfill_records_published_total`, `backfill_records_skipped_total{reason}`) + painel no Grafana
+- [x] T610 **Teste de integração** (Testcontainers + Debezium): 10 mil transações → registros corretos e sem dado pessoal (SC-002)
+- [x] T611 **Prova do SC-001, em processo no motor** (decisão do usuário, sem mexer no código do motor): no `detection-engine`, um teste alimenta a topologia real com os registros que o `transaction-service` gera sobre 100 contas de referência (fixture produzida pelo próprio serviço) e compara `avgAmount30d` com o SQL do banco legado, diferença 0. No compose, prova só o transporte: contagem e conteúdo do tópico `transaction-history-backfill.v1`, sem dado pessoal. O motor não expõe features fora das regras e continua assim.
+- [x] T612 Documentar o procedimento de refazer o backfill (H3) e o `cutoverAt` — `transaction-service/README.md`
+- [x] T613 Métricas de progresso (`backfill_records_published_total`, `backfill_records_skipped_total{reason}`) + painel no Grafana
 
 ## Dependências
 Fase 1 → Fase 2 → Fase 3 → Fase 4. O T611 precisa do 004 com o `BackfillProcessor` (T418).

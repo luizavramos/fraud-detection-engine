@@ -125,4 +125,5 @@ Três cuidados ao medir localmente:
 |---|---|
 | 000 Plataforma e contratos | Pronta (inclui o gerador de carga, Fase 5) |
 | 001 Receiver | Fases 1 a 6 prontas (aceita, publica, duplicatas, fail-open, rate limit, métricas, readiness, painel); falta só medir o p99 com o gerador de carga (T122) |
-| 002–006 | Não iniciadas |
+| 002 Rule management, 003 Customer service, 004 Detection engine, 005 Notification service | Prontas, com testes de integração e validação no compose; a medição de carga (8.000 TPS média, 25.000 de pico) é etapa futura e **não foi feita** |
+| 006 Transaction service | Pronta e validada no compose (1 milhão de transações: 750.082 publicadas na janela, 0 dado pessoal); SC-001 provado em processo no motor; o limite de 20 mil registros/s contra o motor sob tráfego ao vivo não foi medido |
