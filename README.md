@@ -84,6 +84,43 @@ Provas e roteiros neste repositório: `infra/h5-acceptance.sh` (regras a quente)
 
 **Código compartilhado.** `motor-fraude-parent`, `contracts` e `platform-commons` são artefatos Maven versionados (`0.1.0`), publicados no GitHub Packages (repositórios privados; token em `~/.m2/settings.xml`, ver o README do pom pai). Sem registry, instale localmente, nessa ordem: `./mvnw install` em `motor-fraude-parent`, `contracts` e `platform-commons`.
 
+## Rodar o processo completo (um script)
+
+`infra/run-all.sh` faz o caminho inteiro e confere o resultado: sobe a infraestrutura em etapas, registra os conectores do
+Debezium (as regras semeadas chegam ao motor pela outbox, o perfil do cliente pelo CDC), sobe gestão de regras, perfil do
+cliente, motor, notificações e receiver, semeia a lista de bloqueio e envia duas transações ao receiver. No fim confere que:
+as duas tiveram decisão em `fraud-decisions.v1`, só a que tem contraparte em lista de bloqueio gerou alerta HIGH
+(`fraud-alerts.v1`), e o notification-service chamou o antifraude (1 vez) e o push do cliente (simuladores dos provedores).
+
+```bash
+# repositórios de código ao lado deste (ver "Estrutura: repositórios"); JDK 21; Docker com 4 GB
+export JAVA_HOME="C:/Program Files/Java/jdk-21.0.12.1"   # só se o ./mvnw reclamar de JAVA_HOME
+sh infra/run-all.sh
+```
+
+Termina com `OK: o processo inteiro funcionou (0 falhas)` e imprime o tempo de cada etapa e o total. Medido num notebook de
+8 GB com o Docker em 4 GB e as imagens já construídas: **cerca de 2,5 minutos** (infraestrutura ~35 a 55 s, regras e CDC
+~15 s cada, serviços ~30 s, conferência ~45 s). O primeiro build das imagens e o `./mvnw package` de cada repositório ficam
+de fora, e a primeira vez baixa as imagens.
+
+Variáveis: `BUILD=1` refaz os JARs; `WITH_BACKFILL=1` inclui a carga de histórico da spec 006 (2.000 transações por
+padrão, `N=...` muda); `WITH_OBS=1` sobe também Prometheus e Grafana; `KEEP_ALL=1` não para o Connect e o banco legado
+depois de carregar o perfil do cliente (`WITH_BACKFILL=1` também os mantém).
+
+Sobre memória: com 4 GB no Docker, o conjunto inteiro não cabe de uma vez. Por isso o script sobe a infraestrutura em etapas
+e, depois do perfil do cliente carregado, **para o Connect e o banco legado** antes de subir motor, notificações e receiver
+(sem isso o Docker travou com `i/o timeout`). Consequência: depois do script, mudar o banco legado ou registrar conectores
+novos exige subir de novo (`docker compose up -d connect bank-db`). Pode ser rodado mais de uma vez sobre o ambiente de pé.
+Se o Docker Desktop cair no meio (aconteceu várias vezes neste notebook), reinicie-o e rode o script de novo.
+
+**O que o script prova e o que não prova.** Prova o caminho de ponta a ponta com duas transações e os simuladores dos
+provedores. Não mede latência nem carga (ver "Teste de carga"), não exercita regras a quente (`infra/h5-acceptance.sh`) nem
+o caos (`infra/chaos-h6.sh`). A parte `WITH_BACKFILL=1` ainda **não foi rodada** pelo script.
+
+Se rodar no Git Bash do Windows: o script exporta `MSYS_NO_PATHCONV=1` (necessário para os caminhos `/opt/kafka/...` do
+`docker compose exec`), e com ele o `curl -o` falha com código 23. Por isso os scripts de `infra/` evitam `-o` ou chamam o
+`curl` sem essa variável.
+
 ## Teste de carga
 O gerador (repositório `load-generator`) envia transações sintéticas ao receiver em **modelo aberto**: cada requisição tem
 horário planejado e a latência é medida a partir dele, então uma parada do alvo aparece no p99 em vez de sumir.

@@ -8,11 +8,14 @@ set -eu
 CONNECT_URL="${CONNECT_URL:-http://localhost:18083}"
 NAME=rule-sets-outbox
 DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$DIR"   # o curl lê o JSON por caminho relativo: com MSYS_NO_PATHCONV=1 o caminho absoluto do Git Bash chega errado ao curl do Windows e o corpo vai vazio (HTTP 500 no Connect)
 
 registered=0
-for attempt in 1 2 3 4 5 6; do
+for attempt in $(seq 1 30); do
+  rm -f /tmp/connect-register.out
   code="$(curl -s -o /tmp/connect-register.out -w '%{http_code}' -X PUT -H 'Content-Type: application/json' \
-    --data-binary "@$DIR/$NAME.json" "$CONNECT_URL/connectors/$NAME/config" || echo 000)"
+    --data-binary "@$NAME.json" "$CONNECT_URL/connectors/$NAME/config" || true)"
+  code="${code:-000}"
   case "$code" in
     200|201) registered=1; break ;;
     *) echo "tentativa $attempt: HTTP $code $(head -c 200 /tmp/connect-register.out 2>/dev/null)" >&2; sleep 5 ;;
