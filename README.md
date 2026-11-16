@@ -139,7 +139,7 @@ WITH_OBS=1 sh infra/run-all.sh               # ou junto com o processo completo
 ```
 
 **Prometheus.** A configuração está em `infra/prometheus/prometheus.yml`. Ele coleta as métricas dos serviços a cada 15 s:
-segundos: receiver (8081), rule-management (8082), customer-service (8083), detection-engine (8084, e a segunda instância),
+receiver (8081), rule-management (8082), customer-service (8083), detection-engine (8084, e a segunda instância),
 notification-service (8085) e transaction-service (8086). Em *Status → Targets* cada um aparece `UP` ou `DOWN`; um serviço
 que não está de pé fica `DOWN`, e isso é esperado. Para consultar uma métrica, use a aba *Graph*; por exemplo, o p99 de
 latência do motor fim a fim:
