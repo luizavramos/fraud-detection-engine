@@ -123,6 +123,47 @@ Se rodar no Git Bash do Windows: o script exporta `MSYS_NO_PATHCONV=1` (necessá
 `docker compose exec`), e com ele o `curl -o` falha com código 23. Por isso os scripts de `infra/` evitam `-o` ou chamam o
 `curl` sem essa variável.
 
+## Observabilidade: Prometheus e Grafana
+
+| Ferramenta | Endereço | Acesso |
+|---|---|---|
+| Grafana | http://localhost:3000 | usuário `admin`, senha `admin` |
+| Prometheus | http://localhost:9090 | sem login |
+
+**Subir.** O `docker compose up -d` já sobe os dois. Com o `infra/run-all.sh` eles só sobem com `WITH_OBS=1`, porque usam
+memória (com o Docker em 4 GB, deixe desligado se o ambiente travar):
+
+```bash
+docker compose up -d prometheus grafana      # com o ambiente já de pé
+WITH_OBS=1 sh infra/run-all.sh               # ou junto com o processo completo
+```
+
+**Prometheus.** A configuração está em `infra/prometheus/prometheus.yml`. Ele coleta as métricas dos serviços a cada 15 s:
+segundos: receiver (8081), rule-management (8082), customer-service (8083), detection-engine (8084, e a segunda instância),
+notification-service (8085) e transaction-service (8086). Em *Status → Targets* cada um aparece `UP` ou `DOWN`; um serviço
+que não está de pé fica `DOWN`, e isso é esperado. Para consultar uma métrica, use a aba *Graph*; por exemplo, o p99 de
+latência do motor fim a fim:
+
+```
+histogram_quantile(0.99, sum by (le) (rate(engine_e2e_latency_seconds_bucket[1m])))
+```
+
+**Grafana.** O Prometheus já vem configurado como fonte de dados e o dashboard **Motor de fraude** já vem provisionado
+(`infra/grafana/dashboards/motor-fraude.json`); abra em *Dashboards*. Ele tem uma seção por serviço:
+
+- **Receiver (spec 001):** requisições por segundo por desfecho, p99 da publicação no Kafka, duplicatas barradas, fail-open do Redis.
+- **Gestão de regras (spec 002):** conjuntos publicados, falhas de compilação, consultas ao conjunto ativo.
+- **Perfil do cliente (spec 003):** eventos do CDC, perfis publicados, atraso do CDC até o perfil.
+- **Motor de detecção (spec 004):** latência fim a fim (p99 e p50 contra o SLO de 0,5 s), decisões por severidade, disparos por regra
+  (e em sombra), lag do consumidor, versão do conjunto de regras, DLQ.
+- **Notificações (spec 005):** entregas por canal, latência do alerta até a entrega, circuit breakers, DLQ, feedback do analista.
+
+**Dicas.**
+- Painéis vazios quase sempre significam que o serviço não está de pé ou que ainda não passou tráfego: rode o
+  `infra/run-all.sh` ou o gerador de carga e ajuste o período no canto superior direito para os últimos 5 a 15 minutos.
+- Os p99 só valem com o motor **aquecido**; nos primeiros segundos após subir, o JIT frio infla a latência (ver "Teste de carga").
+- O script `infra/engine-latency.sh` lê essas mesmas métricas do Prometheus para medir a latência.
+
 ## Teste de carga
 O gerador (repositório `load-generator`) envia transações sintéticas ao receiver em **modelo aberto**: cada requisição tem
 horário planejado e a latência é medida a partir dele, então uma parada do alvo aparece no p99 em vez de sumir.
