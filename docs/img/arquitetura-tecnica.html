@@ -1,0 +1,90 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+<style>body{margin:0;background:#fff}svg{display:block}</style></head><body>
+<svg id="s" xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000"></svg>
+<script>
+const svg=document.getElementById('s'), rc=rough.svg(svg);
+const FONT="'Patrick Hand', 'Comic Sans MS', cursive";
+const C={blue:'#ffffff',green:'#ffffff',yellow:'#ffffff',red:'#ffffff',violet:'#ffffff',gray:'#ffffff',orange:'#ffffff'};
+let seed=3;
+function add(n){svg.appendChild(n)}
+function txt(x,y,lines,o={}){const size=o.size||18;(Array.isArray(lines)?lines:[lines]).forEach((l,i)=>{const t=document.createElementNS('http://www.w3.org/2000/svg','text');t.setAttribute('x',x);t.setAttribute('y',y+i*(size+3));t.setAttribute('text-anchor',o.anchor||'middle');t.setAttribute('font-family',FONT);t.setAttribute('font-size',size);t.setAttribute('fill',o.color||'#1e1e1e');if(o.bold)t.setAttribute('font-weight','bold');t.textContent=l;add(t)})}
+function box(x,y,w,h,title,sub,color,o={}){add(rc.rectangle(x,y,w,h,{fill:C[color],fillStyle:'solid',stroke:'#1e1e1e',strokeWidth:o.sw||1.6,roughness:1.4,seed:seed++}));const n=sub?1:0;const top=y+h/2-(n*21)/2+6;txt(x+w/2,sub?top-2:y+h/2+6,title,{size:o.ts||20,bold:true});if(sub)txt(x+w/2,top+20,sub,{size:15,color:'#495057'})}
+function cyl(x,y,w,h,title,sub,color){add(rc.ellipse(x+w/2,y+9,w,18,{fill:C[color],fillStyle:'solid',stroke:'#1e1e1e',roughness:1.2,seed:seed++}));add(rc.rectangle(x,y+9,w,h-18,{fill:C[color],fillStyle:'solid',stroke:'none',seed:seed++}));add(rc.line(x,y+9,x,y+h-9,{stroke:'#1e1e1e',roughness:1,seed:seed++}));add(rc.line(x+w,y+9,x+w,y+h-9,{stroke:'#1e1e1e',roughness:1,seed:seed++}));add(rc.ellipse(x+w/2,y+h-9,w,18,{fill:C[color],fillStyle:'solid',stroke:'#1e1e1e',roughness:1.2,seed:seed++}));add(rc.ellipse(x+w/2,y+9,w,18,{fill:C[color],fillStyle:'solid',stroke:'#1e1e1e',roughness:1.2,seed:seed++}));txt(x+w/2,y+h/2+(sub?-2:6),title,{size:19,bold:true});if(sub)txt(x+w/2,y+h/2+18,sub,{size:14,color:'#495057'})}
+function arrow(pts,o={}){const opt={stroke:'#1e1e1e',strokeWidth:1.8,roughness:1.2,seed:seed++};if(o.dash)opt.strokeLineDash=[8,7];add(rc.linearPath(pts,opt));const head=(a,b)=>{const ang=Math.atan2(b[1]-a[1],b[0]-a[0]),L=13;[0.45,-0.45].forEach(d=>add(rc.line(b[0],b[1],b[0]-L*Math.cos(ang+d),b[1]-L*Math.sin(ang+d),{stroke:'#1e1e1e',strokeWidth:1.8,roughness:.8,seed:seed++})))};head(pts[pts.length-2],pts[pts.length-1]);if(o.both)head(pts[1],pts[0]);if(o.label)txt(o.lx,o.ly,o.label,{size:15,color:'#1e1e1e'})}
+function group(x,y,w,h,label,color){add(rc.rectangle(x,y,w,h,{stroke:color,strokeWidth:1.6,roughness:1.6,strokeLineDash:[10,8],seed:seed++}));txt(x+14,y+22,label,{anchor:'start',size:17,color:color,bold:true})}
+
+txt(900,38,'Arquitetura técnica: componentes, tópicos Kafka e o motor por dentro',{size:30,bold:true});
+
+/* origens */
+box(30,90,190,80,'Pix / TED / Boleto / Cartão',null,'gray',{ts:17});
+cyl(30,300,190,80,'Base de clientes','(banco legado)','gray');
+box(30,455,190,80,'Analista de fraude','gestão de regras','gray',{ts:18});
+cyl(30,620,190,80,'Base de transações','(banco legado)','gray');
+cyl(30,770,190,80,'Lista de bloqueio','(seed / carga)','gray');
+
+/* serviços */
+box(290,90,210,80,'receiver :8081','valida · rate limit','blue');
+cyl(310,215,170,70,'Redis','anti-duplicata','red');
+box(290,300,210,80,'customer-service :8083','perfil do cliente','blue',{ts:18});
+box(290,455,210,80,'rule-management :8082','API + versões + aprovação','blue',{ts:18});
+box(290,620,210,80,'transaction-service :8086','carga de 90 dias','blue',{ts:18});
+
+/* tópicos */
+const T=(x,y,t,s)=>box(x,y,250,80,t,s,'yellow',{ts:17});
+T(580,90,'transaction-commands.v1','chave accountId · 48 partições');
+T(580,300,'customer-profile.v1','compactado');
+T(580,455,'rule-sets.v1','compactado');
+T(580,620,'transaction-history-backfill.v1','só no go-live');
+T(580,770,'blocklist.v1','compactado');
+txt(705,70,'Kafka (RF=3, multi-AZ)',{size:16,color:'#495057'});
+
+/* motor */
+group(900,60,360,880,'detection-engine :8084 (Kafka Streams, EOS v2)','#1e1e1e');
+const S=(y,t,s)=>box(925,y,310,100,t,s,'green',{ts:18});
+S(100,'1. Dedup por transactionId','mesmo commit exactly-once · 24 h');
+S(250,'2. Enriquecimento','cópia local do perfil e dos bloqueios');
+S(400,'3. Features da conta (RocksDB)','janelas 1 min · 1 h · 1 dia · 90 dias');
+S(550,'4. Regras CEL em memória','conjunto ativo, troca a quente');
+S(700,'5. Decisão + score','NONE · MEDIUM · HIGH');
+
+/* saídas */
+T(1320,125,'fraud-decisions.v1','toda decisão');
+T(1320,270,'fraud-alerts.v1','só MEDIUM e HIGH');
+T(1320,20,'transaction-commands.dlq','mensagem inválida');
+box(1320,450,250,90,'notification-service :8085','retry · circuit breaker · DLQ','blue',{ts:17});
+T(1320,610,'alerts.retry 1m/5m/30m · alerts.dlq','falha de entrega');
+box(1620,430,150,60,'Antifraude','webhook assinado','orange',{ts:18});
+box(1620,515,150,60,'Cliente','push · e-mail · SMS','orange',{ts:18});
+
+/* setas */
+arrow([[220,130],[290,130]],{label:'HTTP',lx:255,ly:118});
+arrow([[395,170],[395,215]],{both:true,label:'SET NX',lx:440,ly:198});
+arrow([[500,130],[580,130]],{label:'acks=all',lx:540,ly:118});
+arrow([[830,130],[925,150]]);
+arrow([[220,340],[290,340]],{label:'CDC',lx:255,ly:328});
+arrow([[500,340],[580,340]]);
+arrow([[830,340],[870,340],[870,300],[925,300]],{dash:true});
+arrow([[220,495],[290,495]],{label:'HTTP',lx:255,ly:483});
+arrow([[500,495],[580,495]],{label:'outbox + Debezium',lx:540,ly:440});
+arrow([[830,495],[870,495],[870,600],[925,600]],{dash:true});
+arrow([[220,660],[290,660]],{label:'CDC',lx:255,ly:648});
+arrow([[500,660],[580,660]]);
+arrow([[830,660],[880,660],[880,470],[925,470]],{dash:true});
+arrow([[220,810],[580,810]],{dash:true});
+arrow([[830,810],[860,810],[860,320],[925,320]],{dash:true});
+arrow([[1080,200],[1080,250]]);arrow([[1080,350],[1080,400]]);arrow([[1080,500],[1080,550]]);arrow([[1080,650],[1080,700]]);
+arrow([[1235,750],[1280,750],[1280,165],[1320,165]]);
+arrow([[1235,750],[1300,750],[1300,310],[1320,310]]);
+arrow([[1235,140],[1275,140],[1275,60],[1320,60]],{dash:true,label:'poison',lx:1295,ly:50});
+arrow([[1445,350],[1445,450]]);
+arrow([[1570,480],[1620,462]]);arrow([[1570,510],[1620,545]]);
+arrow([[1445,540],[1445,610]],{dash:true,label:'falha',lx:1480,ly:580});
+arrow([[1320,650],[1290,650],[1290,520],[1320,520]],{dash:true});
+
+/* legenda */
+txt(30,935,'Tracejado: dado que o motor lê como tabela local (sem chamada de rede) ou fluxo de exceção',{anchor:'start',size:16,color:'#495057'});
+txt(30,962,'Retângulo: serviço, tópico ou etapa · Cilindro: banco de dados ou Redis · Tracejado grande: o motor',{anchor:'start',size:16,color:'#495057'});
+document.fonts.ready.then(()=>{document.title='ready'});
+</script></body></html>

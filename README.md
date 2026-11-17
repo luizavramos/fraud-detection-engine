@@ -3,7 +3,67 @@
 Motor de detecção de fraude em tempo real: recebe transações de serviços internos, aplica regras configuráveis
 (CEL) e gera alertas para o antifraude e para o cliente, com p99 ≤ 500 ms e 8.000/25.000 TPS (média/pico).
 
+- Serviços, arquitetura e fluxo BPMN: [docs/arquitetura-e-servicos.md](docs/arquitetura-e-servicos.md)
+- Fluxo de chamadas, da transação à notificação: [docs/fluxo-de-chamadas.md](docs/fluxo-de-chamadas.md)
+- Todos os endpoints (request, response e finalidade): [docs/endpoints.md](docs/endpoints.md)
 - Uso de IA no projeto: [docs/uso-de-ia.md](docs/uso-de-ia.md)
+
+## Passo a passo
+
+Do zero até ver o fluxo completo funcionando (transação entra, decisão sai, alerta chega ao antifraude e ao cliente).
+Ao final, o `infra/run-all.sh` confere o resultado sozinho.
+
+**1. Instale o necessário.** Git, **JDK 21** e **Docker** com Docker Compose, com pelo menos **4 GB de memória** liberados para o Docker. No Windows, rode os comandos no Git Bash. Se o `./mvnw` reclamar de `JAVA_HOME`, aponte para o JDK 21.
+
+**2. Clone os repositórios lado a lado**, todos na mesma pasta (o compose procura os serviços em `../receiver`, `../rule-management` etc.):
+
+```bash
+mkdir motor-fraude-projeto && cd motor-fraude-projeto
+for r in motor-fraude motor-fraude-parent contracts platform-commons rules-kernel platform-streams \
+         receiver rule-management customer-service detection-engine notification-service transaction-service \
+         load-generator auditor; do
+  git clone https://github.com/luizavramos/$r.git
+done
+```
+
+**3. Instale as bibliotecas compartilhadas**, nesta ordem (cada serviço depende delas):
+
+```bash
+for r in motor-fraude-parent contracts platform-commons rules-kernel platform-streams; do
+  (cd $r && ./mvnw -q install -DskipTests) || break
+done
+```
+
+**4. Rode o processo completo** a partir do repositório `motor-fraude`:
+
+```bash
+cd motor-fraude
+sh infra/run-all.sh
+```
+
+O script empacota os serviços que faltam, sobe a infraestrutura (Kafka, Redis, Postgres, Debezium), registra os conectores, sobe os
+serviços, envia duas transações e confere o resultado. A primeira vez baixa as imagens e compila tudo, então demora mais.
+
+**5. Confira o resultado.** O script termina com:
+
+```
+OK: o processo inteiro funcionou (0 falhas)
+```
+
+e imprime o tempo de cada etapa. Ele confirma que as duas transações tiveram decisão, que só a da lista de bloqueio gerou alerta
+`HIGH` e que o notification-service chamou o antifraude e o push do cliente.
+
+**6. (Opcional) Veja as métricas.** Rode `WITH_OBS=1 sh infra/run-all.sh` ou, com o ambiente de pé, `docker compose up -d prometheus grafana`:
+Grafana em http://localhost:3000 (usuário `admin`, senha `admin`) e Prometheus em http://localhost:9090.
+
+**7. Pare e limpe** quando terminar:
+
+```bash
+docker compose down -v
+```
+
+Para entender o que cada parte faz, comece por [docs/arquitetura-e-servicos.md](docs/arquitetura-e-servicos.md). Mais opções do script
+(carga de histórico, observabilidade, caos) estão em "Rodar o processo completo", abaixo.
 
 ## Pré-requisitos
 - **JDK 21**
@@ -80,7 +140,7 @@ O projeto segue uma estrutura de microsserviços, **um repositório por serviço
 
 Provas e roteiros neste repositório: `infra/h5-acceptance.sh` (regras a quente), `infra/chaos-h6.sh` (derrubar uma instância do motor), `infra/mocks/smoke.sh` (simuladores dos provedores) e `infra/seed/blocklist.sh` (lista de bloqueio de demonstração).
 
-**Código compartilhado.** `motor-fraude-parent`, `contracts` e `platform-commons` são artefatos Maven versionados (`0.1.0`), publicados no GitHub Packages (repositórios privados; token em `~/.m2/settings.xml`, ver o README do pom pai). Sem registry, instale localmente, nessa ordem: `./mvnw install` em `motor-fraude-parent`, `contracts` e `platform-commons`.
+**Código compartilhado.** `motor-fraude-parent`, `contracts`, `platform-commons`, `rules-kernel` e `platform-streams` são bibliotecas Maven versionadas (`0.1.0`) usadas pelos serviços. O caminho recomendado é instalá-las localmente, nessa ordem, como no "Passo a passo": `./mvnw install` em cada uma. As três primeiras também foram publicadas no GitHub Packages (que costuma exigir token em `~/.m2/settings.xml`, ver o README do pom pai).
 
 ## Rodar o processo completo (um script)
 
@@ -146,15 +206,30 @@ latência do motor fim a fim:
 histogram_quantile(0.99, sum by (le) (rate(engine_e2e_latency_seconds_bucket[1m])))
 ```
 
+**Alertas.** As regras estão em `infra/prometheus/alerts.yml` (13 regras) e o estado aparece em http://localhost:9090/alerts
+(`inactive`, `pending` enquanto espera o tempo da regra, `firing`). Cada regra aponta o runbook da spec técnica (§8.4):
+
+| Grupo | Regras | Severidade |
+|---|---|---|
+| Disponibilidade | `ServicoForaDoAr`, `MotorParado` (entrada chegando e nenhuma decisão saindo) | page |
+| Latência e vazão | `LatenciaFimAFimAcimaDoSLO` (p99 > 500 ms), `ReceiverRecusandoTransacoes` (> 1% de 503), `ConsumerLagAlto`, `ReceiverPublicacaoLenta` | page / ticket |
+| Falsos positivos e regras | `RegraDisparandoAcimaDoNormal` (3x a média de 3 h), `FeedbackDeFalsoPositivoAlto`, `RegrasFalhandoAoCompilarOuCarregar` | ticket |
+| Dependências e filas | `CircuitBreakerAberto`, `EntregasFalhandoNoCanal`, `MensagensNaDLQ`, `RedisEmFailOpen` | ticket |
+
+Simplificações: não há Alertmanager (nada é enviado a on-call; o alerta só aparece no Prometheus) e os limites de latência são
+fixos, em vez do burn rate multi-janela descrito na spec (§8.2). Só o `ServicoForaDoAr` foi visto disparando de verdade, com
+serviços parados; as demais foram validadas na sintaxe (`promtool check rules`) e carregadas sem erro.
+
 **Grafana.** O Prometheus já vem configurado como fonte de dados e o dashboard **Motor de fraude** já vem provisionado
 (`infra/grafana/dashboards/motor-fraude.json`); abra em *Dashboards*. Ele tem uma seção por serviço:
 
-- **Receiver (spec 001):** requisições por segundo por desfecho, p99 da publicação no Kafka, duplicatas barradas, fail-open do Redis.
-- **Gestão de regras (spec 002):** conjuntos publicados, falhas de compilação, consultas ao conjunto ativo.
-- **Perfil do cliente (spec 003):** eventos do CDC, perfis publicados, atraso do CDC até o perfil.
-- **Motor de detecção (spec 004):** latência fim a fim (p99 e p50 contra o SLO de 0,5 s), decisões por severidade, disparos por regra
+- **Receiver:** requisições por segundo por desfecho, p99 da publicação no Kafka, duplicatas barradas, fail-open do Redis.
+- **Gestão de regras:** conjuntos publicados, falhas de compilação, consultas ao conjunto ativo.
+- **Perfil do cliente:** eventos do CDC, perfis publicados, atraso do CDC até o perfil.
+- **Motor de detecção:** latência fim a fim (p99 e p50 contra o SLO de 0,5 s), decisões por severidade, disparos por regra
   (e em sombra), lag do consumidor, versão do conjunto de regras, DLQ.
-- **Notificações (spec 005):** entregas por canal, latência do alerta até a entrega, circuit breakers, DLQ, feedback do analista.
+- **Notificações:** entregas por canal, latência do alerta até a entrega, circuit breakers, DLQ, feedback do analista.
+- **Carga de histórico:** transações publicadas no histórico e velocidade da carga (publicadas e descartadas por segundo).
 
 **Dicas.**
 - Painéis vazios quase sempre significam que o serviço não está de pé ou que ainda não passou tráfego: rode o

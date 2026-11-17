@@ -1,0 +1,141 @@
+# Regras de alerta do Prometheus (monitoramento operacional, spec técnica §8).
+# Cada regra aponta o runbook da seção 8.4 e o SLO da 8.2. `severity: page` acorda o on-call;
+# `severity: ticket` abre chamado em horário comercial.
+#
+# Simplificação do take-home: sem Alertmanager, os alertas aparecem em http://localhost:9090/alerts.
+# Em produção o Alertmanager roteia por severidade (page -> on-call, ticket -> fila) e os limites de
+# latência passam para burn rate multi-janela (14,4x em 1 h e 5 min = page; 6x em 6 h = ticket).
+groups:
+  - name: disponibilidade
+    rules:
+      - alert: ServicoForaDoAr
+        # detection-engine-2 só existe no perfil de caos, então não conta.
+        expr: up{job="services", service=~"receiver|rule-management|customer-service|detection-engine|notification-service", instance!="detection-engine-2:8084"} == 0
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "{{ $labels.service }} fora do ar ({{ $labels.instance }})"
+          runbook: "§8.4 Dependência indisponível / Motor parado: confirmar a degradação esperada (§5.4) e acionar o dono."
+
+      - alert: MotorParado
+        # Entrada chegando e nenhuma decisão saindo: eventos ficam retidos no Kafka, nada se perde.
+        expr: |
+          sum(rate(receiver_requests_total{status="ACCEPTED"}[2m])) > 0
+          and
+          (sum(rate(engine_decisions_total[2m])) or vector(0)) == 0
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: "Receiver aceita transações mas o motor não decide nenhuma"
+          runbook: "§8.4 Motor parado (SEV1): rollback do último deploy; os eventos esperam no Kafka."
+
+  - name: latencia-e-vazao
+    rules:
+      - alert: LatenciaFimAFimAcimaDoSLO
+        # SLO: p99 evento -> alerta interno <= 500 ms.
+        expr: histogram_quantile(0.99, sum by (le) (rate(engine_e2e_latency_seconds_bucket[5m]))) > 0.5
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: "p99 fim a fim do motor em {{ $value | humanizeDuration }} (SLO 500 ms)"
+          runbook: "§8.4 Queda de throughput: rebalance em loop? partição quente? broker degradado? CPU saturada?"
+
+      - alert: ConsumerLagAlto
+        expr: max(kafka_consumer_fetch_manager_records_lag_max{service="detection-engine", client_id=~".*StreamThread.*consumer"}) > 10000
+        for: 5m
+        labels: { severity: ticket }
+        annotations:
+          summary: "Lag do motor em {{ $value }} registros"
+          runbook: "§8.4 Queda de throughput: ver lag por partição no dashboard (partição quente) e escalar."
+
+      - alert: ReceiverPublicacaoLenta
+        # SC-001 da spec 001: p99 do receiver <= 30 ms (medido só em escala local, ver docs/resultados-carga.md).
+        expr: histogram_quantile(0.99, sum by (le) (rate(receiver_publish_seconds_bucket[5m]))) > 0.5
+        for: 5m
+        labels: { severity: ticket }
+        annotations:
+          summary: "p99 da publicação no Kafka em {{ $value | humanizeDuration }}"
+          runbook: "§8.4 Queda de throughput: broker degradado ou receiver saturado."
+
+      - alert: ReceiverRecusandoTransacoes
+        expr: |
+          sum(rate(receiver_requests_total{status=~"UNAVAILABLE|IN_FLIGHT"}[5m]))
+            / sum(rate(receiver_requests_total[5m])) > 0.01
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: "Mais de 1% das transações do receiver respondem 503"
+          runbook: "§8.4 Queda de throughput: Kafka indisponível ou lento no ack."
+
+  - name: falsos-positivos-e-regras
+    rules:
+      - alert: RegraDisparandoAcimaDoNormal
+        # Sinal de falso positivo: a regra dispara 3x acima da própria média das últimas 3 h.
+        # O piso de 0,05/s evita alerta com tráfego baixo.
+        expr: |
+          sum by (rule_id) (rate(engine_rule_hits_total{mode="active"}[5m])) > 0.05
+          and
+          sum by (rule_id) (rate(engine_rule_hits_total{mode="active"}[5m]))
+            > 3 * avg_over_time(sum by (rule_id) (rate(engine_rule_hits_total{mode="active"}[5m]))[3h:5m])
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: "Regra {{ $labels.rule_id }} disparando {{ $value | humanize }}/s, acima de 3x a média de 3 h"
+          runbook: "§8.4 Falsos positivos: correlacionar com o último ruleSetVersion; colocar a regra em SHADOW ou reverter o RuleSet."
+
+      - alert: FeedbackDeFalsoPositivoAlto
+        expr: |
+          sum(increase(alerts_feedback_total{verdict=~"(?i)false_positive"}[30m]))
+            / sum(increase(alerts_feedback_total[30m])) > 0.5
+          and sum(increase(alerts_feedback_total[30m])) >= 10
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: "Mais da metade do feedback dos analistas nos últimos 30 min é FALSE_POSITIVE"
+          runbook: "§8.4 Falsos positivos: ver a regra no painel de feedback; se não for regra, checar o perfil (CDC)."
+
+      - alert: RegrasFalhandoAoCompilarOuCarregar
+        expr: |
+          sum(increase(rules_compilation_failures_total[5m])) > 0
+          or sum(increase(engine_ruleset_load_failures_total[5m])) > 0
+        labels: { severity: ticket }
+        annotations:
+          summary: "Falha ao compilar ou carregar um conjunto de regras"
+          runbook: "O motor segue com a versão anterior; corrigir a regra e publicar de novo (ou rollback)."
+
+  - name: dependencias-e-filas
+    rules:
+      - alert: CircuitBreakerAberto
+        expr: max by (name) (resilience4j_circuitbreaker_state{service="notification-service", state=~"open|forced_open"}) == 1
+        for: 1m
+        labels: { severity: ticket }
+        annotations:
+          summary: "Circuit breaker do canal {{ $labels.name }} aberto"
+          runbook: "§8.4 Dependência indisponível: confirmar a degradação (fallback de canal), acionar o dono e reprocessar a DLQ depois."
+
+      - alert: EntregasFalhandoNoCanal
+        expr: |
+          sum by (channel) (rate(notification_deliveries_total{result="failed"}[5m]))
+            / sum by (channel) (rate(notification_deliveries_total{result=~"sent|failed"}[5m])) > 0.05
+        for: 5m
+        labels: { severity: ticket }
+        annotations:
+          summary: "Mais de 5% das entregas do canal {{ $labels.channel }} falham"
+          runbook: "SLO de entrega (99%): checar o simulador/provedor e o circuit breaker do canal."
+
+      - alert: MensagensNaDLQ
+        expr: |
+          sum(increase(engine_dlq_total[5m])) > 0
+          or sum(increase(notification_dlq_total[5m])) > 0
+        labels: { severity: ticket }
+        annotations:
+          summary: "Mensagens chegaram à DLQ nos últimos 5 min"
+          runbook: "§8.4 Dependência indisponível: investigar a causa e reprocessar a DLQ com a ferramenta controlada."
+
+      - alert: RedisEmFailOpen
+        expr: sum(rate(receiver_redis_failopen_total[5m])) > 0
+        for: 5m
+        labels: { severity: ticket }
+        annotations:
+          summary: "Receiver sem o escudo de duplicatas do Redis (fail-open)"
+          runbook: "O motor resolve a duplicata (spec 004); restaurar o Redis."

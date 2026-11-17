@@ -140,6 +140,7 @@ services:
       - "${PROMETHEUS_HOST_PORT:-9090}:9090"
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
     mem_limit: 256m
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:9090/-/ready"]

@@ -36,7 +36,7 @@
   <h3>Detecção</h3>
   <div class="step"><span class="b">3</span><span><b>Motor de detecção</b> (EKS, Kafka Streams): dedup final, perfil em cópia local, histórico calculado no fluxo, regras e decisão.</span></div>
   <div class="step"><span class="b">3.1</span><span><b>EBS gp3</b>: memória local do motor (RocksDB), com backup nos changelogs do Kafka.</span></div>
-  <div class="step"><span class="b">3.2</span><span><b>Gestão de regras</b>: o motor busca o conjunto ativo a cada 30 s (polling com ETag). Nenhuma transação chama a gestão.</span></div>
+  <div class="step"><span class="b">3.2</span><span><b>Gestão de regras</b>: grava as regras no RDS com uma outbox; o Debezium (MSK Connect) publica o conjunto em <code>rule-sets.v1</code> e o motor o consome do Kafka. Nenhuma transação chama a gestão.</span></div>
   <div class="step"><span class="b">3.3</span><span><b>RDS Postgres Multi-AZ</b>: banco de regras e banco de alertas e entregas.</span></div>
 
   <h3>Auditoria</h3>
@@ -163,7 +163,6 @@ function drawAZ(dx, faded) {
     arrow([[290, 690], [290, 748]], { both: true });
     arrow([[420, 690], [420, 748]], { both: true });
     arrow([[290, 513], [290, 533]], { both: true });
-    arrow([[350, 484], [358, 484]]);
   }
 }
 drawAZ(0, false);

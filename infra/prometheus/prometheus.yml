@@ -4,6 +4,10 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# Regras de alerta (spec técnica §8). Sem Alertmanager: veja o estado em http://localhost:9090/alerts.
+rule_files:
+  - /etc/prometheus/alerts.yml
+
 scrape_configs:
   - job_name: prometheus
     static_configs:

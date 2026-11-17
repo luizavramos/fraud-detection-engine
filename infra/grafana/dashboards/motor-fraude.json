@@ -16,13 +16,13 @@
       "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
       "options": {
         "mode": "markdown",
-        "content": "Painéis entram junto com cada serviço (specs 001–006). Já disponível: **Receiver** (spec 001), **Gestão de regras** (spec 002), **Perfil do cliente** (spec 003), **Motor de detecção** (spec 004) e **Notificações** (spec 005). Ainda por vir: o serviço de transações (spec 006)."
+        "content": "Uma seção por serviço, na ordem do fluxo: **Receiver**, **Gestão de regras**, **Perfil do cliente**, **Motor de detecção**, **Notificações** e **Carga de histórico**. Painéis vazios indicam serviço parado ou sem tráfego; ajuste o período no canto superior direito para os últimos 5 a 15 minutos."
       }
     },
     {
       "id": 2,
       "type": "row",
-      "title": "Receiver (spec 001)",
+      "title": "Receiver",
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 3 },
       "panels": []
@@ -133,7 +133,7 @@
     {
       "id": 7,
       "type": "row",
-      "title": "Gestão de regras (spec 002)",
+      "title": "Gestão de regras",
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 },
       "panels": []
@@ -226,7 +226,7 @@
     {
       "id": 12,
       "type": "row",
-      "title": "Perfil do cliente (spec 003)",
+      "title": "Perfil do cliente",
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
       "panels": []
@@ -301,7 +301,7 @@
     {
       "id": 16,
       "type": "row",
-      "title": "Motor de detecção (spec 004)",
+      "title": "Motor de detecção",
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 54 },
       "panels": []
@@ -421,7 +421,7 @@
     {
       "id": 24,
       "type": "row",
-      "title": "Notificações (spec 005)",
+      "title": "Notificações",
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 87 },
       "panels": []
@@ -496,7 +496,7 @@
     {
       "id": 30,
       "type": "row",
-      "title": "Carga de histórico (spec 006)",
+      "title": "Carga de histórico",
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 112 },
       "panels": []
