@@ -1,5 +1,5 @@
 #!/bin/sh
-# Cria os tópicos do projeto (specs/000-plataforma-e-contratos/plan.md §3.1).
+# Cria os tópicos do projeto (plano da spec 000, §3.1).
 # Idempotente: pode rodar quantas vezes quiser (--if-not-exists).
 #
 # Cada kafka-topics.sh é uma JVM; por isso a criação roda em lotes paralelos e com JVM enxuta

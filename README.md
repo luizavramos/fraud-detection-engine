@@ -3,8 +3,6 @@
 Motor de detecção de fraude em tempo real: recebe transações de serviços internos, aplica regras configuráveis
 (CEL) e gera alertas para o antifraude e para o cliente, com p99 ≤ 500 ms e 8.000/25.000 TPS (média/pico).
 
-- Arquitetura e decisões: [technical-spec-motor-deteccao-fraude.md](technical-spec-motor-deteccao-fraude.md) (ADRs 1–13)
-- Specs por unidade de implementação: [specs/](specs/README.md)
 - Uso de IA no projeto: [docs/uso-de-ia.md](docs/uso-de-ia.md)
 
 ## Pré-requisitos
@@ -65,7 +63,7 @@ O projeto segue uma estrutura de microsserviços, **um repositório por serviço
 
 | Repositório | O que é |
 |---|---|
-| `motor-fraude` (este) | Specs 000–006, ADRs, `docs/`, `docker-compose.yml` e `infra/` (tópicos, bancos, Prometheus, Grafana, `smoke.sh`) |
+| `motor-fraude` (este) | `docs/`, `docker-compose.yml` e `infra/` (tópicos, bancos, Prometheus, Grafana, `smoke.sh`) |
 | `motor-fraude-parent` | Pom pai: versões, plugins e regras do Enforcer |
 | `contracts` | JSON Schemas versionados (estritos), records Java, `JsonCodec` e `ContractAssertions` |
 | `platform-commons` | Base comum sem Spring: logs JSON com dados pessoais mascarados, `traceparent`, `Clock` e regras ArchUnit |
