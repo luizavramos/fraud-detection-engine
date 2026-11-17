@@ -1,14 +1,4 @@
 #!/bin/sh
-# Cria os tópicos do projeto (plano da spec 000, §3.1).
-# Idempotente: pode rodar quantas vezes quiser (--if-not-exists).
-#
-# Cada kafka-topics.sh é uma JVM; por isso a criação roda em lotes paralelos e com JVM enxuta
-# (sem isso, 14 tópicos levavam ~3 minutos numa máquina modesta).
-#
-# Variáveis:
-#   BOOTSTRAP_SERVER  broker (padrão kafka:29092)
-#   PROFILE           local (padrão: 1 broker, RF 1) ou prod (partições de produção, RF 3)
-#   PARALLEL          criações simultâneas (padrão 5)
 set -eu
 
 BOOTSTRAP="${BOOTSTRAP_SERVER:-kafka:29092}"
@@ -16,7 +6,6 @@ PROFILE="${PROFILE:-local}"
 PARALLEL="${PARALLEL:-5}"
 KT=/opt/kafka/bin/kafka-topics.sh
 
-# JVM curta para as ferramentas de linha de comando
 export KAFKA_HEAP_OPTS="-Xms32m -Xmx128m"
 export KAFKA_JVM_PERFORMANCE_OPTS="-XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xshare:auto"
 
@@ -26,11 +15,10 @@ case "$PROFILE" in
   *) echo "PROFILE inválido: $PROFILE (use local ou prod)" >&2; exit 2 ;;
 esac
 
-D3=259200000     # 3 dias em ms
-D7=604800000     # 7 dias
-D14=1209600000   # 14 dias
+D3=259200000
+D7=604800000
+D14=1209600000
 
-# nome | partições local | partições prod | cleanup.policy | retention.ms (- = sem retenção por tempo)
 TOPICS="
 transaction-commands.v1|6|48|delete|$D7
 transaction-commands.dlq|1|6|delete|$D14
@@ -90,7 +78,6 @@ if [ "$failed" -ne 0 ]; then
 fi
 echo "$n tópicos criados/confirmados."
 
-# Co-particionamento exigido pelo motor: os três tópicos precisam ter o mesmo número de partições.
 ALL="$("$KT" --bootstrap-server "$BOOTSTRAP" --describe)"
 count() { echo "$ALL" | awk -v t="$1" '$1=="Topic:" && $2==t { for (i = 1; i < NF; i++) if ($i=="PartitionCount:") print $(i+1) }'; }
 a=$(count transaction-commands.v1)

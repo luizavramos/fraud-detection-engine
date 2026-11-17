@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-# Teste de aceite da H1 (spec 000): "docker compose up -d" deixa tudo healthy em até 3 minutos
-# e os tópicos Kafka existem com as partições e a política definidas.
-#
-# Uso: infra/smoke.sh [--fresh]
-#   --fresh   derruba antes e apaga os volumes (prova o primeiro start do zero)
-# Variáveis: TIMEOUT (segundos, padrão 180). O tempo conta a partir do "up"; imagens já devem estar baixadas
-#            (rode "docker compose pull" antes — o primeiro download não faz parte do SLA de 3 minutos).
 set -u
-export MSYS_NO_PATHCONV=1   # Git Bash no Windows: não converter caminhos "/opt/..." dos comandos do container
+export MSYS_NO_PATHCONV=1
 
 cd "$(dirname "$0")/.."
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
@@ -63,7 +56,6 @@ for s in $HEALTHY_SERVICES; do ok "$s healthy"; done
 ok "kafka-init terminou com código 0"
 
 echo ">> H1.2 tópicos (kafka-topics --describe)"
-# nome:partições:política   (plan 000 §3.1, perfil local)
 EXPECTED="
 transaction-commands.v1:6:delete
 transaction-commands.dlq:1:delete
@@ -81,7 +73,6 @@ cdc.bank.customers:3:delete
 cdc.bank.customer_devices:3:delete
 cdc.bank.transactions:3:delete
 "
-# Uma única JVM (kafka-topics.sh --describe sem --topic lista todos): cada chamada custa alguns segundos.
 ALL_TOPICS="$(docker compose exec -T kafka "$KT" --bootstrap-server localhost:29092 --describe 2>/dev/null)"
 topic_line() { echo "$ALL_TOPICS" | awk -v t="$1" '$1=="Topic:" && $2==t'; }
 partitions_of() { topic_line "$1" | awk '{ for (i = 1; i < NF; i++) if ($i=="PartitionCount:") print $(i+1) }'; }

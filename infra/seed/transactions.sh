@@ -1,11 +1,4 @@
 #!/bin/sh
-# Gera transações sintéticas no banco legado (spec 006, T603): padrão 1 milhão, espalhadas por 120 dias antes de ANCHOR.
-# Determinístico: o mesmo N e o mesmo ANCHOR geram sempre as mesmas linhas (contas 1..10000, as mesmas do init.sql).
-# Idempotente: se a tabela já tiver N ou mais linhas, não faz nada (FORCE=1 apaga e gera de novo).
-# Rode ANTES de registrar o conector transactions-cdc: o snapshot do Debezium lê o que já estiver na tabela.
-# Uso: sh infra/seed/transactions.sh            (N=1000000, ANCHOR=agora)
-#      N=20000 ANCHOR=2026-11-15T00:00:00Z sh infra/seed/transactions.sh
-# Variáveis: N, ANCHOR, FORCE, BANK_DB_CONTAINER (padrão: serviço bank-db do compose)
 set -eu
 
 N="${N:-1000000}"

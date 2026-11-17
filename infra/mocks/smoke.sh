@@ -1,13 +1,11 @@
 #!/bin/sh
-# Teste de fumaça dos simuladores dos provedores (spec 005): respostas de sucesso, falha configurável por simulador, isolamento
-# entre simuladores e o diário de requisições. Uso: sh infra/mocks/smoke.sh   (MOCKS_URL padrão: http://localhost:18090)
 set -eu
 
 MOCKS="${MOCKS_URL:-http://localhost:18090}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 failures=0
 
-check() { # descrição esperado obtido
+check() {
   if [ "$2" = "$3" ]; then
     echo "  ok: $1"
   else

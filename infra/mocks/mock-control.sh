@@ -1,14 +1,4 @@
 #!/bin/sh
-# Controle dos simuladores dos provedores (WireMock, spec 005): liga e desliga falhas por simulador e consulta o diário de requisições.
-# Simuladores: antifraud-legacy, push-provider, email-provider, sms-provider, contacts (cada um é um prefixo de caminho).
-# Uso:
-#   sh infra/mocks/mock-control.sh <simulador> unavailable   responde 503
-#   sh infra/mocks/mock-control.sh <simulador> slow          responde 202 depois de 5 s
-#   sh infra/mocks/mock-control.sh <simulador> ok            volta ao normal
-#   sh infra/mocks/mock-control.sh reset                     volta todos ao normal e zera o diário
-#   sh infra/mocks/mock-control.sh count <simulador>         quantas requisições o simulador recebeu desde o último reset
-#   sh infra/mocks/mock-control.sh count-key <simulador> <chave>   quantas com esse Idempotency-Key
-# MOCKS_URL padrão: http://localhost:18090
 set -eu
 
 MOCKS="${MOCKS_URL:-http://localhost:18090}"
@@ -30,7 +20,7 @@ remove_failure() {
   admin -o /dev/null -X DELETE "$MOCKS/__admin/mappings/$(id_of "$1")" || true
 }
 
-set_failure() { # simulador status atraso_ms
+set_failure() {
   remove_failure "$1"
   admin -o /dev/null -X POST "$MOCKS/__admin/mappings" -d '{
     "id": "'"$(id_of "$1")"'",
@@ -40,7 +30,7 @@ set_failure() { # simulador status atraso_ms
   }'
 }
 
-count_json() { # simulador [chave]
+count_json() {
   if [ -n "${2:-}" ]; then
     admin -X POST "$MOCKS/__admin/requests/count" -d '{"urlPathPattern":"/'"$1"'/.*","headers":{"Idempotency-Key":{"equalTo":"'"$2"'"}}}'
   else

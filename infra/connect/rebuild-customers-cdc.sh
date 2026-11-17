@@ -1,11 +1,4 @@
 #!/bin/sh
-# Reconstrução dos perfis (spec 003, H4): refaz o snapshot do banco legado.
-# Para o conector customers-cdc, apaga os offsets dele no Connect e o slot de replicação do Postgres, e retoma o conector.
-# Sem offsets, ele lê as tabelas inteiras (snapshot inicial) e o customer-service republica todos os perfis nas mesmas
-# chaves; a compactação de customer-profile.v1 descarta as versões antigas.
-# O conector não é removido de propósito: recriar um conector logo depois de removê-lo parado faz o Connect responder 500
-# (NullPointerException) por alguns minutos.
-# Uso: sh infra/connect/rebuild-customers-cdc.sh   (CONNECT_URL padrão: http://localhost:18083; roda na raiz do repositório)
 set -eu
 
 CONNECT_URL="${CONNECT_URL:-http://localhost:18083}"

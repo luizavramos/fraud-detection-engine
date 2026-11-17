@@ -1,10 +1,7 @@
-# Alvos de todos os serviços do projeto (portas da constituição). Enquanto um serviço não estiver
-# no compose, o alvo aparece como DOWN — esperado até as specs 001–006 entrarem.
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
-# Regras de alerta (spec técnica §8). Sem Alertmanager: veja o estado em http://localhost:9090/alerts.
 rule_files:
   - /etc/prometheus/alerts.yml
 
@@ -13,9 +10,6 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # Todos os serviços expõem /actuator/prometheus (constituição VII): os Spring Boot pelo Actuator e os apps
-  # Kafka Streams (customer-service, detection-engine, transaction-service) pelo MiniHttpServer da platform-streams,
-  # que responde no mesmo caminho.
   - job_name: services
     metrics_path: /actuator/prometheus
     static_configs:

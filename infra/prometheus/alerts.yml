@@ -1,15 +1,7 @@
-# Regras de alerta do Prometheus (monitoramento operacional, spec técnica §8).
-# Cada regra aponta o runbook da seção 8.4 e o SLO da 8.2. `severity: page` acorda o on-call;
-# `severity: ticket` abre chamado em horário comercial.
-#
-# Simplificação do take-home: sem Alertmanager, os alertas aparecem em http://localhost:9090/alerts.
-# Em produção o Alertmanager roteia por severidade (page -> on-call, ticket -> fila) e os limites de
-# latência passam para burn rate multi-janela (14,4x em 1 h e 5 min = page; 6x em 6 h = ticket).
 groups:
   - name: disponibilidade
     rules:
       - alert: ServicoForaDoAr
-        # detection-engine-2 só existe no perfil de caos, então não conta.
         expr: up{job="services", service=~"receiver|rule-management|customer-service|detection-engine|notification-service", instance!="detection-engine-2:8084"} == 0
         for: 2m
         labels: { severity: page }
@@ -18,7 +10,6 @@ groups:
           runbook: "§8.4 Dependência indisponível / Motor parado: confirmar a degradação esperada (§5.4) e acionar o dono."
 
       - alert: MotorParado
-        # Entrada chegando e nenhuma decisão saindo: eventos ficam retidos no Kafka, nada se perde.
         expr: |
           sum(rate(receiver_requests_total{status="ACCEPTED"}[2m])) > 0
           and
@@ -32,7 +23,6 @@ groups:
   - name: latencia-e-vazao
     rules:
       - alert: LatenciaFimAFimAcimaDoSLO
-        # SLO: p99 evento -> alerta interno <= 500 ms.
         expr: histogram_quantile(0.99, sum by (le) (rate(engine_e2e_latency_seconds_bucket[5m]))) > 0.5
         for: 5m
         labels: { severity: page }
@@ -49,7 +39,6 @@ groups:
           runbook: "§8.4 Queda de throughput: ver lag por partição no dashboard (partição quente) e escalar."
 
       - alert: ReceiverPublicacaoLenta
-        # SC-001 da spec 001: p99 do receiver <= 30 ms (medido só em escala local, ver docs/resultados-carga.md).
         expr: histogram_quantile(0.99, sum by (le) (rate(receiver_publish_seconds_bucket[5m]))) > 0.5
         for: 5m
         labels: { severity: ticket }
@@ -70,8 +59,6 @@ groups:
   - name: falsos-positivos-e-regras
     rules:
       - alert: RegraDisparandoAcimaDoNormal
-        # Sinal de falso positivo: a regra dispara 3x acima da própria média das últimas 3 h.
-        # O piso de 0,05/s evita alerta com tráfego baixo.
         expr: |
           sum by (rule_id) (rate(engine_rule_hits_total{mode="active"}[5m])) > 0.05
           and

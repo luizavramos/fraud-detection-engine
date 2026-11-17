@@ -1,12 +1,9 @@
 #!/bin/sh
-# Registra (ou atualiza) os conectores Debezium do banco legado. Cada <nome>.json desta pasta vira o conector <nome>.
-# Idempotente: PUT em /connectors/<nome>/config cria ou atualiza; tenta de novo se o Connect estiver rebalanceando.
-# Uso: sh infra/connect/register-connectors.sh [nome ...]   (padrão: customers-cdc; CONNECT_URL padrão http://localhost:18083)
 set -eu
 
 CONNECT_URL="${CONNECT_URL:-http://localhost:18083}"
 DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$DIR"   # o curl lê o JSON por caminho relativo: com MSYS_NO_PATHCONV=1 o caminho absoluto do Git Bash chega errado ao curl do Windows e o corpo vai vazio (HTTP 500 no Connect)
+cd "$DIR"
 OUT="$(mktemp)"
 trap 'rm -f "$OUT"' EXIT
 [ "$#" -gt 0 ] || set -- customers-cdc

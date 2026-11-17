@@ -1,6 +1,3 @@
-# Ensaio de latência: motor com log em INFO (o detection-engine não tem logback.xml, então o Logback usa DEBUG).
-# Uso: docker compose -f docker-compose.yml -f infra/experiments/engine-log-info.override.yml --profile app up -d detection-engine
-# Memória: ENGINE_MEM_LIMIT (padrão 1g).
 services:
   detection-engine:
     environment:

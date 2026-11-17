@@ -1,14 +1,4 @@
 #!/bin/sh
-# Teste de caos H6 da spec 004: derruba uma instância do motor no meio da carga e confere, com o consumidor-auditor, que cada
-# transação aceita tem exatamente uma decisão (nenhuma faltante, nenhuma duplicada, nenhum alerta em duplicidade).
-#
-# Antes (na raiz do repositório; empacote receiver, detection-engine, load-generator e auditor com ./mvnw -DskipTests package):
-#   docker compose up -d kafka kafka-init redis prometheus
-#   docker compose --profile app --profile chaos up -d --build receiver detection-engine detection-engine-2
-#   Espere as duas instâncias dividirem as partições (até ~1 min, o intervalo do probing rebalance):
-#   docker compose exec -T kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server kafka:29092 --describe --group detection-engine --members
-# Uso: sh infra/chaos-h6.sh
-# Escala local: 150 TPS por 45 s (mais 5 s de aquecimento) = 7.500 conexões, abaixo do limite de portas efêmeras do Windows.
 set -eu
 
 TPS="${TPS:-150}"

@@ -1,14 +1,4 @@
 #!/bin/sh
-# Aceite H5 da spec 004: regras a quente, de ponta a ponta, com a gestão de regras REAL e o motor REAL no compose.
-# Cria uma regra pela API, muda o threshold, desliga e faz rollback, e confere nas decisões do motor (fraud-decisions.v1) que
-# cada mudança passa a valer em até 35 s, SEM reiniciar o motor (o script confere o id do contêiner, o instante de início do
-# contêiner e o instante de início do processo antes e depois).
-#
-# Antes (na raiz do repositório): subir o ambiente e os dois serviços já empacotados (./mvnw -DskipTests package em cada repositório):
-#   docker compose up -d postgres kafka kafka-init connect
-#   docker compose --profile app up -d --build rule-management detection-engine
-#   sh infra/connect/register-rule-sets-outbox.sh
-# Uso: sh infra/h5-acceptance.sh
 set -eu
 
 RULES="${RULES_URL:-http://localhost:8082}"
@@ -20,7 +10,7 @@ KAFKA="docker compose exec -T kafka /opt/kafka/bin"
 export MSYS_NO_PATHCONV=1
 
 fail() { echo "FALHOU: $*" >&2; exit 1; }
-api() { # usuario senha metodo caminho [corpo]
+api() {
   user="$1"; pass="$2"; method="$3"; path="$4"; body="${5:-}"
   if [ -n "$body" ]; then
     curl -s -u "$user:$pass" -X "$method" -H 'Content-Type: application/json' -d "$body" "$RULES$path"
@@ -41,7 +31,7 @@ identity() {
 }
 
 counter=0
-send() { # valor
+send() {
   counter=$((counter + 1))
   txid="h5-$(date +%s)-$counter-abcdef"
   now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -51,13 +41,12 @@ send() { # valor
   echo "$txid"
 }
 
-decision_of() { # transactionId -> JSON da decisão (vazio se ainda não saiu)
+decision_of() {
   $KAFKA/kafka-console-consumer.sh --bootstrap-server kafka:29092 --topic fraud-decisions.v1 --from-beginning --timeout-ms 4000 2>/dev/null \
     | grep "\"transactionId\":\"$1\"" | head -1 || true
 }
 
-# espera até a decisão de uma transação nova refletir a condição; imprime os segundos gastos
-wait_for() { # valor_da_transacao condicao(grep -E) descricao
+wait_for() {
   start="$(date +%s)"
   while :; do
     txid="$(send "$1")"

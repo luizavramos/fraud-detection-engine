@@ -1,17 +1,9 @@
 #!/bin/sh
-# Ensaio do backfill no compose, com o motor de pé e tráfego ao vivo (spec 006), em versão leve: o transaction-service é
-# zerado e relê o CDC retido em cdc.bank.transactions (não refaz o snapshot no Postgres), com taxa limitada. A cada 5 s
-# registra estado, publicados e atraso do motor no tópico de histórico; no meio da carga manda comandos ao vivo e mede a
-# latência p99 do motor no Prometheus (antes, durante e depois).
-#
-# Pré-requisitos: kafka, bank-db (com as transações), connect, prometheus e o motor no ar, com o atraso do histórico em 0
-# (senão a linha de base já nasce carregada); /tmp/live.txt com linhas "conta|json" de comandos (ver backfill-verify.sh).
-# Uso: RATE=2000 LIVE_START=60 sh infra/backfill-experiment.sh > /tmp/exp.log
 set -eu
 RATE="${RATE:-2000}"
 LIVE_START="${LIVE_START:-60}"
 LIVE_FILE="${LIVE_FILE:-/tmp/live.txt}"
-LIVE_PER_TICK="${LIVE_PER_TICK:-25}"      # linhas por 0,1 s: 25 = ~250 comandos/s
+LIVE_PER_TICK="${LIVE_PER_TICK:-25}"
 export MSYS_NO_PATHCONV=1 BACKFILL_RATE_PER_SECOND="$RATE" TRANSACTION_SERVICE_CONTEXT="${TRANSACTION_SERVICE_CONTEXT:-../motor-fraude/transaction-service}"
 KAFKA="docker compose exec -T kafka /opt/kafka/bin"
 PROM="http://localhost:9090/api/v1/query"
@@ -25,7 +17,6 @@ echo "# $(date -u +%T) taxa=$RATE/s; tráfego ao vivo a partir de ${LIVE_START}s
 echo "# $(date -u +%T) linha de base (motor ocioso): p99 5 min = $(p99 5m) s; atraso do histórico = $(lag)"
 docker compose rm -sf transaction-service >/dev/null 2>&1 || true
 docker volume rm motor-fraude_transaction-service-data >/dev/null 2>&1 || true
-# o reset só vale com o grupo vazio (o membro antigo pode levar até 45 s para sair); tenta de novo e mostra o resultado
 reset_ok=0
 for attempt in 1 2 3 4 5 6 7 8 9 10; do
   if $KAFKA/kafka-streams-application-reset.sh --bootstrap-server localhost:9092 --application-id transaction-service \
@@ -57,7 +48,7 @@ while :; do
   pub="$(echo "$s" | sed -n 's/.*"published":\([0-9]*\).*/\1/p')"
   if [ -n "$state" ]; then
     delta=$(( ${pub:-0} - prev )); prev=${pub:-0}
-    elapsed=$(( t - prev_t )); [ "$elapsed" -lt 1 ] && elapsed=1; prev_t=$t   # o laço demora mais que o sleep de 5 s
+    elapsed=$(( t - prev_t )); [ "$elapsed" -lt 1 ] && elapsed=1; prev_t=$t
     rate=$(( delta / elapsed )); [ "$rate" -gt "$peak" ] && peak=$rate
     [ -n "$last_state" ] && [ "$state" != "$last_state" ] && flips=$((flips + 1))
     last_state="$state"

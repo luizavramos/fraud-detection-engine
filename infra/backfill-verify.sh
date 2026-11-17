@@ -1,19 +1,4 @@
 #!/bin/sh
-# Confere, no compose, se o histórico que o motor reconstruiu bate com o banco legado (spec 006, SC-001 no ambiente real).
-# Para cada conta do intervalo manda UMA transação ao vivo ao motor e compara avgAmount30d, maxAmount90d e count30d da
-# decisão com o cálculo em SQL, na mesma janela do motor: dias UTC, média calculada ANTES da transação avaliada.
-#
-# A transação avaliada entra nos buckets do motor; por isso use um intervalo de contas NOVO a cada conferência
-# (rodar duas vezes no mesmo intervalo mede o histórico mais a transação da rodada anterior).
-#
-# Se o motor foi zerado e refeito a partir dos tópicos (procedimento H3), ele também reprocessa o tráfego ao vivo que
-# ainda estiver em transaction-commands.v1 (retenção de 7 dias). Esse tráfego não está no banco legado, então passe um
-# dump dos valores do tópico em EXTRA_COMMANDS_FILE para entrar na referência:
-#   kafka-console-consumer.sh ... --topic transaction-commands.v1 --from-beginning --timeout-ms 20000 > comandos.txt
-#
-# Uso:  sh infra/backfill-verify.sh <conta-inicial> <conta-final>      (números: 1 100 confere acc_tok_00000001..acc_tok_00000100)
-# Variáveis: CUTOVER_AT (padrão 2026-11-15T00:00:00Z, o do .env), DECISION_WAIT (segundos), EXTRA_COMMANDS_FILE,
-#            DECISIONS_FILE + RUN_ID (reconferir decisões já capturadas, sem mandar nada de novo)
 set -eu
 
 FIRST="${1:?conta inicial}"
@@ -32,7 +17,6 @@ trap 'rm -rf "$WORK"' EXIT
 acc() { printf 'acc_tok_%08d' "$1"; }
 FIRST_ACC="$(acc "$FIRST")"; LAST_ACC="$(acc "$LAST")"
 
-# 1. a referência em SQL: conta, quantidade, soma e maior valor, só do que o backfill publica ([cutover-90d, cutover))
 $PSQL <<SQL > "$WORK/sql.csv"
 select a.account_token, coalesce(c.n, 0), coalesce(c.sum_cents, 0), coalesce(m.max_cents, 0)
 from (select distinct account_token from bank.transactions where account_token between '$FIRST_ACC' and '$LAST_ACC') a
@@ -50,7 +34,6 @@ order by 1;
 SQL
 [ -s "$WORK/sql.csv" ] || { echo "nenhuma conta em $FIRST_ACC..$LAST_ACC no banco legado" >&2; exit 2; }
 
-# 1b. tráfego ao vivo reprocessado do tópico de comandos: conta,valor (sem as transações desta própria conferência)
 : > "$WORK/extra.csv"
 if [ -n "${EXTRA_COMMANDS_FILE:-}" ]; then
   grep -v '"transactionId":"vfy' "$EXTRA_COMMANDS_FILE" | awk '
@@ -58,14 +41,12 @@ if [ -n "${EXTRA_COMMANDS_FILE:-}" ]; then
     match($0, /"accountId":"[^"]*"/) { a = substr($0, RSTART + 13, RLENGTH - 14) }
     match($0, /"amount":\{"value":[0-9]+/) { v = substr($0, RSTART + 18, RLENGTH - 18); print a "," v }' > "$WORK/extra.csv"
 fi
-# referência final: conta, count30d, avg30d (divisão inteira, como o motor), max90d
 awk -F, '
   NR == FNR { n[$1]++; s[$1] += $2; if ($2 + 0 > m[$1] + 0) m[$1] = $2; next }
   { c = $2 + n[$1]; t = $3 + s[$1]; mx = ($4 + 0 > m[$1] + 0) ? $4 : m[$1]; printf "%s,%d,%d,%d\n", $1, c, (c == 0 ? 0 : int(t / c)), mx }
 ' "$WORK/extra.csv" "$WORK/sql.csv" > "$WORK/expected.csv"
 TOTAL="$(wc -l < "$WORK/expected.csv" | tr -d ' ')"
 
-# 2. uma transação ao vivo por conta (a chave do registro é a conta, como no receiver)
 if [ -n "${DECISIONS_FILE:-}" ]; then
   RUN="${RUN_ID:?informe RUN_ID junto com DECISIONS_FILE}"
   grep "\"transactionId\":\"${RUN}_" "$DECISIONS_FILE" > "$WORK/decisions.txt" || true
@@ -77,7 +58,6 @@ else
   $KAFKA/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic transaction-commands.v1 \
     --property parse.key=true --property key.separator='|' < "$WORK/commands.txt" > /dev/null
 
-  # 3. as decisões: lê o tópico inteiro para um arquivo e confere; se faltar, espera e lê de novo
   echo "RUN_ID=$RUN"
   for attempt in 1 2 3 4; do
     $KAFKA/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic fraud-decisions.v1 --from-beginning \
@@ -88,7 +68,6 @@ else
 fi
 GOT="$(wc -l < "$WORK/decisions.txt" | tr -d ' ')"
 
-# 4. diferença, conta a conta
 bad=0
 while IFS=, read -r account n avg mx; do
   line="$(grep "\"accountId\":\"$account\"" "$WORK/decisions.txt" | head -1 || true)"

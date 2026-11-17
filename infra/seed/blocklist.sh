@@ -1,9 +1,4 @@
 #!/bin/sh
-# Semeia (ou limpa) a lista de bloqueio de demonstração em blocklist.v1 (spec 004, H7).
-# add    publica 3 contas e 2 dispositivos marcados como fraude; a regra R10 passa a disparar para quem transacionar com eles
-# remove publica um tombstone (valor nulo) para cada um, e o bloqueio some na hora
-# Uso (na raiz do repositório, com o Kafka no ar): sh infra/seed/blocklist.sh [add|remove]
-# Todos os tokens são sintéticos. O motivo segue o contrato blocklist-entry.v1 (código em maiúsculas).
 set -eu
 
 ACTION="${1:-add}"
