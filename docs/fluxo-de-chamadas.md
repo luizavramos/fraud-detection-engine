@@ -238,13 +238,12 @@ flowchart LR
 
 | Fluxo | Como chega ao motor | Quanto demora |
 |---|---|---|
-| **Regras novas ou mudança de threshold** | O rule-management grava o conjunto de regras numa tabela outbox; o Debezium publica em `rule-sets.v1`; o motor compila e troca sem parar | Meta de até ~35 s (spec 004) |
+| **Regras novas ou mudança de threshold** | O rule-management grava o conjunto de regras numa tabela outbox; o Debezium publica em `rule-sets.v1`; o motor compila e troca sem parar | Meta de até ~35 s |
 | **Perfil do cliente** | O Debezium lê as mudanças do banco legado (`cdc.bank.*`); o customer-service monta o perfil e publica em `customer-profile.v1` | Segundos; se parar, a defasagem aparece na métrica de frescor |
 | **Histórico de 90 dias** | O transaction-service lê o banco de transações uma vez (go-live) e publica em `transaction-history-backfill.v1` | Uma vez, no início |
 
 Se o **rule-management** cair, o motor segue com o último conjunto de regras (só não dá para publicar regra nova). Se o
-**customer-service** cair, o motor segue com o último perfil (cópia local). Detalhes na seção 5.4 da spec técnica
-(documento fora deste repositório).
+**customer-service** cair, o motor segue com o último perfil (cópia local).
 
 ---
 
@@ -266,7 +265,7 @@ Se o **rule-management** cair, o motor segue com o último conjunto de regras (s
 - **Confirmado no código e na execução:** ordem das validações do receiver, tópicos e nomes, política de canais por severidade
   (MEDIUM só antifraude; HIGH antifraude, push e e-mail; SMS de fallback do push), chamadas de contatos e dos provedores, valores de
   timeout, retentativas e circuit breaker, e o fato de o motor ler as regras pelo tópico `rule-sets.v1` e não por HTTP.
-- **Do desenho (spec técnica), não medido aqui:** a meta de 500 ms ponta a ponta e os 8.000 TPS (ver `docs/resultados-carga.md`),
+- **Do desenho, não medido aqui:** a meta de 500 ms ponta a ponta e os 8.000 TPS (ver `docs/resultados-carga.md`),
   e a assinatura HMAC do webhook do antifraude.
 - **Desenho `fluxo-bpmn-sequencia.drawio` (raiz):** já reflete que o motor recebe as regras pelo tópico `rule-sets.v1`
   (antes mostrava uma consulta HTTP a cada 30 s, que o código não faz).

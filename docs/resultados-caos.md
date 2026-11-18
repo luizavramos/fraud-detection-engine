@@ -1,4 +1,4 @@
-# Resultado do teste de caos (spec 004, H6)
+# Resultado do teste de caos
 
 **Pergunta:** derrubar uma instância do motor no meio da carga gera alerta duplicado ou deixa transação sem decisão?
 **Resposta nesta rodada local: não.** Auditoria **aprovada**: 7.416 transações aceitas, 7.416 com exatamente uma decisão,

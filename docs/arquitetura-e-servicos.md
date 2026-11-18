@@ -213,7 +213,7 @@ serviços  ──/actuator/prometheus──►  Prometheus (coleta 15 s · 13 al
 ![Alvos do Prometheus](prints/prometheus-targets.png)
 
 ### Alertas
- As regras ficam em `infra/prometheus/alerts.yml` e apontam o runbook da spec técnica.
+ As regras ficam em `infra/prometheus/alerts.yml`.
 
 | Grupo | Regras |
 |---|---|

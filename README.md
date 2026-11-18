@@ -92,8 +92,8 @@ Terminando com `0 falhas`, o ambiente está pronto.
 | Postgres do projeto | `localhost:5432` | bancos `rules_db` e `alerts_db`; usuário e senha `motorfraude`; `wal_level=logical` (o Debezium lê a outbox do `rules_db`) |
 | Banco legado (fonte do CDC) | `localhost:5433` | banco `bank`, usuário e senha `bank`; 10 mil clientes **sintéticos** |
 | Redis | `localhost:6379` | |
-| Kafka Connect + Debezium | `localhost:18083` | conector `rule-sets-outbox` (registre com `sh infra/connect/register-rule-sets-outbox.sh`, depois de subir o rule-management); o conector `customers-cdc` (spec 003) registra com `sh infra/connect/register-connectors.sh` e se refaz com `sh infra/connect/rebuild-customers-cdc.sh`; o da 006 ainda não existe |
-| Prometheus | `localhost:9090` | alvos dos serviços 8081–8086 aparecem como DOWN até as specs 001–006 |
+| Kafka Connect + Debezium | `localhost:18083` | conector `rule-sets-outbox` (registre com `sh infra/connect/register-rule-sets-outbox.sh`, depois de subir o rule-management); o conector `customers-cdc` registra com `sh infra/connect/register-connectors.sh` e se refaz com `sh infra/connect/rebuild-customers-cdc.sh`; o da 006 ainda não existe |
+| Prometheus | `localhost:9090` | alvos dos serviços 8081–8086 aparecem como DOWN até os serviços subirem |
 | Grafana | `localhost:3000` | usuário `admin`, senha `admin`; dashboard "Motor de fraude" já provisionado |
 
 Alguma porta ocupada? Copie `.env.example` para `.env` e mude a porta do host.
@@ -127,16 +127,16 @@ O projeto segue uma estrutura de microsserviços, **um repositório por serviço
 | `motor-fraude-parent` | Pom pai: versões, plugins e regras do Enforcer |
 | `contracts` | JSON Schemas versionados (estritos), records Java, `JsonCodec` e `ContractAssertions` |
 | `platform-commons` | Base comum sem Spring: logs JSON com dados pessoais mascarados, `traceparent`, `Clock` e regras ArchUnit |
-| `receiver` | Porta de entrada HTTP (spec 001) |
-| `load-generator` | Gerador de carga (spec 000, Fase 5) |
-| `rules-kernel` | Biblioteca de regras: compilação e avaliação CEL (spec 002) |
-| `rule-management` | Gestão de regras (spec 002, porta 8082) |
+| `receiver` | Porta de entrada HTTP |
+| `load-generator` | Gerador de carga |
+| `rules-kernel` | Biblioteca de regras: compilação e avaliação CEL |
+| `rule-management` | Gestão de regras (porta 8082) |
 | `platform-streams` | Base dos apps Kafka Streams: EOS, static membership, saúde e métricas sem Spring |
-| `customer-service` | Perfil do cliente a partir do CDC do banco legado (spec 003, porta 8083) |
-| `detection-engine` | Motor de detecção (spec 004, porta 8084; `--profile app`, e `--profile chaos` para a 2ª instância) |
-| `auditor` | Consumidor-auditor: uma decisão por transação aceita, nenhum alerta duplicado (spec 004, H6) |
-| `notification-service` | Notificações ao antifraude e ao cliente (spec 005, porta 8085; `--profile app`) |
-| `transaction-service` | Backfill de 90 dias de histórico para o motor (spec 006, porta 8086; `--profile app`) |
+| `customer-service` | Perfil do cliente a partir do CDC do banco legado (porta 8083) |
+| `detection-engine` | Motor de detecção (porta 8084; `--profile app`, e `--profile chaos` para a 2ª instância) |
+| `auditor` | Consumidor-auditor: uma decisão por transação aceita, nenhum alerta duplicado |
+| `notification-service` | Notificações ao antifraude e ao cliente (porta 8085; `--profile app`) |
+| `transaction-service` | Backfill de 90 dias de histórico para o motor (porta 8086; `--profile app`) |
 
 Provas e roteiros neste repositório: `infra/h5-acceptance.sh` (regras a quente), `infra/chaos-h6.sh` (derrubar uma instância do motor), `infra/mocks/smoke.sh` (simuladores dos provedores) e `infra/seed/blocklist.sh` (lista de bloqueio de demonstração).
 
@@ -159,7 +159,7 @@ sh infra/run-all.sh
 Termina com `OK: o processo inteiro funcionou (0 falhas)` e imprime o tempo de cada etapa e o total. O primeiro build das
 imagens e o `./mvnw package` de cada repositório não entram nessa conta, e a primeira vez baixa as imagens.
 
-Variáveis: `BUILD=1` refaz os JARs; `WITH_BACKFILL=1` inclui a carga de histórico da spec 006 (2.000 transações por
+Variáveis: `BUILD=1` refaz os JARs; `WITH_BACKFILL=1` inclui a carga de histórico (2.000 transações por
 padrão, `N=...` muda); `WITH_OBS=1` sobe também Prometheus e Grafana; `KEEP_ALL=1` não para o Connect e o banco legado
 depois de carregar o perfil do cliente (e do backfill, se pedido). Com `WITH_BACKFILL=1` o script semeia as transações no
 banco legado, sobe o `transaction-service`, registra o conector `transactions-cdc`, espera o status `COMPLETED` e confere que
@@ -174,8 +174,7 @@ Se o Docker Desktop cair no meio (aconteceu várias vezes neste notebook), reini
 **O que o script prova e o que não prova.** Prova o caminho de ponta a ponta com duas transações e os simuladores dos
 provedores. Não mede latência nem carga (ver "Teste de carga"), não exercita regras a quente (`infra/h5-acceptance.sh`) nem
 o caos (`infra/chaos-h6.sh`). Com `WITH_BACKFILL=1` prova o transporte do backfill (status `COMPLETED`, registros no
-tópico), mas **não confere que o motor usou o histórico**: isso está provado nos testes do `detection-engine` e no ensaio
-H3-B da spec 006 (`infra/backfill-verify.sh`).
+tópico), mas **não confere que o motor usou o histórico**: isso está provado nos testes do `detection-engine` e no ensaio de verificação do backfill (`infra/backfill-verify.sh`).
 
 Se rodar no Git Bash do Windows: o script exporta `MSYS_NO_PATHCONV=1` (necessário para os caminhos `/opt/kafka/...` do
 `docker compose exec`), e com ele o `curl -o` falha com código 23. Por isso os scripts de `infra/` evitam `-o` ou chamam o
@@ -207,7 +206,7 @@ histogram_quantile(0.99, sum by (le) (rate(engine_e2e_latency_seconds_bucket[1m]
 ```
 
 **Alertas.** As regras estão em `infra/prometheus/alerts.yml` (13 regras) e o estado aparece em http://localhost:9090/alerts
-(`inactive`, `pending` enquanto espera o tempo da regra, `firing`). Cada regra aponta o runbook da spec técnica (§8.4):
+(`inactive`, `pending` enquanto espera o tempo da regra, `firing`). As regras e os grupos:
 
 | Grupo | Regras | Severidade |
 |---|---|---|
@@ -217,7 +216,7 @@ histogram_quantile(0.99, sum by (le) (rate(engine_e2e_latency_seconds_bucket[1m]
 | Dependências e filas | `CircuitBreakerAberto`, `EntregasFalhandoNoCanal`, `MensagensNaDLQ`, `RedisEmFailOpen` | ticket |
 
 Simplificações: não há Alertmanager (nada é enviado a on-call; o alerta só aparece no Prometheus) e os limites de latência são
-fixos, em vez do burn rate multi-janela descrito na spec (§8.2). Só o `ServicoForaDoAr` foi visto disparando de verdade, com
+fixos. Só o `ServicoForaDoAr` foi visto disparando de verdade, com
 serviços parados; as demais foram validadas na sintaxe (`promtool check rules`) e carregadas sem erro.
 
 **Grafana.** O Prometheus já vem configurado como fonte de dados e o dashboard **Motor de fraude** já vem provisionado
@@ -271,12 +270,3 @@ Três cuidados ao medir localmente:
 - **Espere entre rodadas**: depois de uma rodada que colapsa, o Windows fica minutos com milhares de conexões em `TIME_WAIT`
   e as rodadas seguintes falham por falta de portas (`No buffer space available`), mesmo que o receiver esteja bem.
 - **Memória do receiver**: o padrão do compose é 512 MB; para carga use `RECEIVER_MEM_LIMIT=1g`.
-
-## Andamento das specs
-
-| Spec | Estado |
-|---|---|
-| 000 Plataforma e contratos | Pronta (inclui o gerador de carga, Fase 5) |
-| 001 Receiver | Fases 1 a 6 prontas (aceita, publica, duplicatas, fail-open, rate limit, métricas, readiness, painel); p99 medido com o gerador de carga **só em escala local de 300 TPS** (T122, `docs/resultados-carga.md`); os 8.000 TPS do SC-001 ficam para a nuvem |
-| 002 Rule management, 003 Customer service, 004 Detection engine, 005 Notification service | Prontas, com testes de integração e validação no compose; a medição de carga (8.000 TPS média, 25.000 de pico) é etapa futura e **não foi feita** |
-| 006 Transaction service | Pronta e validada no compose (1 milhão de transações: 750.082 publicadas na janela, 0 dado pessoal; depois, com 500 mil e o motor de pé: carga `COMPLETED`, reset do motor com 100 contas iguais ao SQL, limitador a 2 mil/s); SC-001 provado em processo no motor; o limite padrão de 20 mil registros/s contra o motor sob tráfego ao vivo não foi medido |

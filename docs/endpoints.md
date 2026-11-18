@@ -553,7 +553,7 @@ Os serviços de detecção conversam por mensageria. Os contratos (JSON Schema) 
 
 ## Limitações a ter em mente
 
-- **O notification-service não tem autenticação** no código local: qualquer um que chegue à porta 8085 lista alertas e dá feedback. O `X-Analyst` é só informativo, não é verificado. Em produção isso precisa de OIDC ou mTLS (a spec técnica §6 descreve o desenho).
+- **O notification-service não tem autenticação** no código local: qualquer um que chegue à porta 8085 lista alertas e dá feedback. O `X-Analyst` é só informativo, não é verificado. Em produção isso precisa de OIDC ou mTLS.
 - O rule-management usa **HTTP Basic com usuários em memória**: serve ao ambiente local, não a produção.
 - O receiver valida o `X-Client-Id` por **lista fixa**, sem segredo: é identificação, não autenticação forte.
 - As mensagens de `errors` do `400` do receiver vêm do validador, em inglês e **sem o nome do campo**; dá para melhorar.
