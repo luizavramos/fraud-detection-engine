@@ -177,7 +177,7 @@ tópico), mas **não confere que o motor usou o histórico**: isso está provado
 
 Se rodar no Git Bash do Windows: o script exporta `MSYS_NO_PATHCONV=1` (necessário para os caminhos `/opt/kafka/...` do
 `docker compose exec`), e com ele o `curl -o` falha com código 23. Por isso os scripts de `infra/` evitam `-o` ou chamam o
-`curl` sem essa variável. O mesmo vale para o `./mvnw`: com `MSYS_NO_PATHCONV=1` ele não carrega o Maven (\x{60}Could not find or load main class ...Launcher\x{60}); se for empacotar à mão no Git Bash, rode-o sem essa variável.
+`curl` sem essa variável. O mesmo vale para o `./mvnw`: com `MSYS_NO_PATHCONV=1` ele não carrega o Maven (\`Could not find or load main class ...Launcher\`); se for empacotar à mão no Git Bash, rode-o sem essa variável.
 
 ## Observabilidade: Prometheus e Grafana
 
