@@ -76,7 +76,7 @@ Os desenhos são fluxogramas com raias e decisões no estilo BPMN, sem a notaç�
 Faixas padrão de severidade: `NONE` abaixo de 40, `MEDIUM` de 40 a 69 e `HIGH` de 70 em diante. Os valores mudam
 por `PUT /v1/scoring`, sem deploy. `MEDIUM` vai só ao antifraude; `HIGH` vai ao antifraude, push e e-mail.
 
-Fluxos paralelos, fora do caminho da transação (detalhes em [`fluxo-de-chamadas.md`](https://drive.google.com/file/d/1YuJBFQv9AtrRfVlsE55Ez4FNEXZpuVqq/view)):
+Fluxos paralelos, fora do caminho da transação (detalhes no PDF [`fluxo-de-chamadas`](https://drive.google.com/file/d/1zFRxj6Luys5qRT_pt17TOEPc_ceo8AE2/view)):
 1. **Regras:** analista cria e aprova na gestão de regras, outbox, Debezium, `rule-sets.v1`, o motor recompila e troca a quente.
 2. **Perfil do cliente:** banco legado, CDC, customer-service, `customer-profile.v1`.
 3. **Histórico:** banco legado, CDC (snapshot), transaction-service, `transaction-history-backfill.v1`.
