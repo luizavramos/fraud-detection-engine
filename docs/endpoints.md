@@ -557,4 +557,3 @@ Os serviços de detecção conversam por mensageria. Os contratos (JSON Schema) 
 - O rule-management usa **HTTP Basic com usuários em memória**: serve ao ambiente local, não a produção.
 - O receiver valida o `X-Client-Id` por **lista fixa**, sem segredo: é identificação, não autenticação forte.
 - As mensagens de `errors` do `400` do receiver vêm do validador, em inglês e **sem o nome do campo**; dá para melhorar.
-- O OpenAPI gerado automaticamente (`/v3/api-docs`) é **raso**: no rule-management só lista `200`, e no receiver nem descreve o corpo. Este documento é mais completo que o Swagger.

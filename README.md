@@ -5,8 +5,7 @@ Motor de detecção de fraude em tempo real: recebe transações de serviços in
 
 - Serviços, arquitetura e fluxo BPMN: [docs/arquitetura-e-servicos.md](docs/arquitetura-e-servicos.md)
 - Fluxo de chamadas, da transação à notificação: [docs/fluxo-de-chamadas.md](docs/fluxo-de-chamadas.md)
-- Todos os endpoints (request, response e finalidade): [docs/endpoints.md](docs/endpoints.md)
-- Uso de IA no projeto: [docs/uso-de-ia.md](docs/uso-de-ia.md)
+- Todos os endpoints (request, response e finalidade): [docs/endpoints.md](docs/endpoints.md)
 
 ## Passo a passo
 
