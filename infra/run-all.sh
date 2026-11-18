@@ -78,7 +78,7 @@ wait_until "customer-service" 180 ready 8083
 wait_topic "perfis do banco legado em cdc.bank.customers" 90 cdc.bank.customers '"customer_id"\|"customerId"\|"op"'
 sleep 15
 if [ "${WITH_BACKFILL:-0}" = "1" ]; then
-  say "Carga de histórico (spec 006): $N transações do banco legado para o tópico do motor"
+  say "Carga de histórico: $N transações do banco legado para o tópico do motor"
   CUTOVER_AT="${CUTOVER_AT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
   export CUTOVER_AT
   echo "  CUTOVER_AT=$CUTOVER_AT, N=$N"

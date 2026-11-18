@@ -125,4 +125,4 @@ groups:
         labels: { severity: ticket }
         annotations:
           summary: "Receiver sem o escudo de duplicatas do Redis (fail-open)"
-          runbook: "O motor resolve a duplicata (spec 004); restaurar o Redis."
+          runbook: "O motor resolve a duplicata; restaurar o Redis."
