@@ -1,0 +1,16 @@
+flowchart TB
+    S((Transação feita)) --> E1["A origem envia<br/>POST /v1/transactions:evaluate"]
+    E1 --> V1{"X-Client-Id<br/>conhecido?"}
+    V1 -- não --> R401["401: origem não autorizada"]
+    V1 -- sim --> V2{"Dentro do limite<br/>de taxa?"}
+    V2 -- não --> R429["429 + Retry-After"]
+    V2 -- sim --> V2B{"Corpo dentro<br/>do tamanho?"}
+    V2B -- não --> R413["413: corpo grande demais"]
+    V2B -- sim --> V3{"Contrato válido?<br/>(JSON Schema)"}
+    V3 -- não --> R400["400: lista de erros"]
+    V3 -- sim --> V4{"Já recebida?<br/>(Redis SET NX, 5 ms)"}
+    V4 -- sim --> R202D(["202 DUPLICATE<br/>e para"])
+    V4 -- "não, ou Redis lento<br/>(fail-open)" --> V5["Publica em<br/>transaction-commands.v1"]
+    V5 --> V6{"Kafka<br/>gravou?"}
+    V6 -- não --> R503["503 + Retry-After"]
+    V6 -- sim --> R202(["202 ACCEPTED<br/>segue para o motor"])

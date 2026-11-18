@@ -1,0 +1,16 @@
+flowchart LR
+    A["Chamada ao canal<br/>⏱ 2 s"] --> B{"Deu certo?"}
+    B -- sim --> OK(["Entregue"])
+    B -- não --> C["Retentativa imediata<br/>até 3 tentativas<br/>espera 200 ms, depois 400 ms"]
+    C --> D{"Deu certo?"}
+    D -- sim --> OK
+    D -- não --> E["alerts.retry.1m"]
+    E --> F{"Deu certo?"}
+    F -- sim --> OK
+    F -- não --> G["alerts.retry.5m"]
+    G --> H{"Deu certo?"}
+    H -- sim --> OK
+    H -- não --> I["alerts.retry.30m"]
+    I --> J{"Deu certo?"}
+    J -- sim --> OK
+    J -- não --> K[["alerts.dlq<br/>reprocesso manual"]]

@@ -1,0 +1,14 @@
+flowchart TB
+    I(["Alerta chega pelo Kafka<br/>fraud-alerts.v1"]) --> N1["Grava o alerta e<br/>as linhas de entrega"]
+    N1 --> N2["Avisa o antifraude<br/>(webhook)"]
+    N2 --> D1(["Antifraude recebe o caso"])
+    N1 --> N3{"Pontos ≥ 70?<br/>(severidade HIGH)"}
+    N3 -- não --> NF(["Fim: MEDIUM só vai<br/>ao antifraude"])
+    N3 -- sim --> N4["Busca o contato<br/>GET /v1/contacts/{accountId}"]
+    N4 --> N5["Push"]
+    N4 --> N6["E-mail"]
+    N5 --> N7{"Push<br/>entregue?"}
+    N7 -- sim --> D2(["Cliente recebe o aviso"])
+    N7 -- não --> N8["Fallback: SMS"]
+    N8 --> D2
+    N6 --> D2

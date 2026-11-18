@@ -6,11 +6,7 @@ e quais limites de tempo valem.
 
 Os endpoints, com request e response de cada um, estão em [endpoints.md](endpoints.md). Aqui o foco é a **sequência**.
 
-Os diagramas foram escritos em [Mermaid](https://mermaid.js.org/): um texto que vira desenho. O GitHub e o VS Code (com a extensão
-Markdown Preview Mermaid Support) já mostram o desenho pronto; em outros visualizadores, como o Drive, aparece só o texto. Para esses casos,
-cada diagrama também está salvo como imagem em `docs/prints/`:
-`fluxo-sequencia.png`, `fluxo-decisao-receiver.png`, `fluxo-decisao-motor.png`, `fluxo-decisao-notificacoes.png`,
-`fluxo-falha-canal.png` e `fluxo-paralelos.png`.
+Os diagramas são imagens (em `docs/prints/`), para abrirem em qualquer visualizador. O código-fonte de cada um, em [Mermaid](https://mermaid.js.org/), está em `docs/diagramas/`.
 
 ## Em uma frase
 
@@ -23,8 +19,8 @@ síncrono.
 
 | Símbolo | Significado |
 |---|---|
-| Seta cheia `->>` | Chamada que espera resposta (HTTP) |
-| Seta tracejada `-->>` | Resposta, ou mensagem assíncrona pelo Kafka (a mensagem fica gravada no tópico) |
+| Seta cheia | Chamada que espera resposta (HTTP) |
+| Seta tracejada | Resposta, ou mensagem assíncrona pelo Kafka (a mensagem fica gravada no tópico) |
 | **`tópico.v1`** | Tópico do Kafka. Quem publica não espera quem consome |
 | ⏱ | Limite de tempo da chamada |
 
@@ -32,64 +28,7 @@ síncrono.
 
 ## Diagrama 1: sequência de chamadas
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant O as Origem (Pix, TED...)
-    participant R as receiver :8081
-    participant X as Redis
-    participant K as Kafka
-    participant M as detection-engine :8084
-    participant N as notification-service :8085
-    participant C as Serviço de contatos
-    participant A as Antifraude legado
-    participant P as Push / E-mail / SMS
-    actor AN as Analista
-
-    rect rgb(235, 245, 255)
-    Note over O,K: Trecho 1: ingestão (síncrono, termina em 202)
-    O->>R: POST /v1/transactions:evaluate<br/>X-Client-Id + Idempotency-Key
-    R->>R: valida origem, limite de taxa,<br/>tamanho e contrato (JSON Schema)
-    R->>X: SET NX transactionId (⏱ 5 ms)
-    X-->>R: primeira vez (ou já vista = DUPLICATE)
-    R-->>K: publica em transaction-commands.v1
-    K-->>R: ack (gravado)
-    R-->>O: 202 Accepted {status: ACCEPTED}
-    end
-
-    rect rgb(240, 255, 240)
-    Note over K,M: Trecho 2: detecção (assíncrono, p99 ≤ 500 ms)
-    K-->>M: entrega o comando
-    M->>M: descarta duplicata, monta o contexto<br/>(perfil + histórico + lista de bloqueio)
-    M->>M: aplica as regras em memória e soma os pontos
-    M-->>K: publica a decisão em fraud-decisions.v1
-    M-->>K: se pontos ≥ 40, publica o alerta em fraud-alerts.v1
-    end
-
-    rect rgb(255, 248, 230)
-    Note over K,P: Trecho 3: notificação (cada canal por HTTP)
-    K-->>N: entrega o alerta
-    N->>N: grava o alerta (Postgres) e a linha de entrega por canal
-    N->>A: POST /webhooks/fraud-alerts (⏱ 2 s)<br/>Idempotency-Key: alertId:ANTIFRAUD_WEBHOOK
-    A-->>N: 202
-    opt severidade HIGH (pontos ≥ 70)
-        N->>C: GET /v1/contacts/{accountId}
-        C-->>N: token do dispositivo, e-mail, telefone
-        N->>P: POST /v1/push (⏱ 2 s)<br/>Idempotency-Key: alertId:PUSH
-        P-->>N: 202
-        N->>P: POST /v1/email (⏱ 2 s)<br/>Idempotency-Key: alertId:EMAIL
-        P-->>N: 202
-    end
-    end
-
-    rect rgb(250, 240, 250)
-    Note over N,AN: Depois: o analista revisa
-    AN->>N: GET /v1/alerts?accountId=...&severity=HIGH
-    N-->>AN: lista de alertas (paginada)
-    AN->>N: POST /v1/alerts/{alertId}/feedback
-    N-->>AN: 201 Created
-    end
-```
+![Diagrama de sequência das chamadas](prints/fluxo-sequencia.png)
 
 ### Os passos, um a um
 
@@ -118,60 +57,15 @@ diagrama por serviço, na ordem em que o processo passa por eles.
 
 ### 2.1 receiver: aceita ou recusa
 
-```mermaid
-flowchart TB
-    S((Transação feita)) --> E1["A origem envia<br/>POST /v1/transactions:evaluate"]
-    E1 --> V1{"X-Client-Id<br/>conhecido?"}
-    V1 -- não --> R401["401: origem não autorizada"]
-    V1 -- sim --> V2{"Dentro do limite<br/>de taxa?"}
-    V2 -- não --> R429["429 + Retry-After"]
-    V2 -- sim --> V2B{"Corpo dentro<br/>do tamanho?"}
-    V2B -- não --> R413["413: corpo grande demais"]
-    V2B -- sim --> V3{"Contrato válido?<br/>(JSON Schema)"}
-    V3 -- não --> R400["400: lista de erros"]
-    V3 -- sim --> V4{"Já recebida?<br/>(Redis SET NX, 5 ms)"}
-    V4 -- sim --> R202D(["202 DUPLICATE<br/>e para"])
-    V4 -- "não, ou Redis lento<br/>(fail-open)" --> V5["Publica em<br/>transaction-commands.v1"]
-    V5 --> V6{"Kafka<br/>gravou?"}
-    V6 -- não --> R503["503 + Retry-After"]
-    V6 -- sim --> R202(["202 ACCEPTED<br/>segue para o motor"])
-```
+![Fluxo de decisão do receiver](prints/fluxo-decisao-receiver.png)
 
 ### 2.2 detection-engine: decide se é suspeita
 
-```mermaid
-flowchart TB
-    I(["Comando chega pelo Kafka<br/>transaction-commands.v1"]) --> M1{"Já processada?<br/>(dedup por transactionId)"}
-    M1 -- sim --> MD(["Descarta a duplicata"])
-    M1 -- não --> M2["Monta o contexto:<br/>perfil do cliente, histórico<br/>e lista de bloqueio"]
-    M2 --> M2B{"Perfil<br/>disponível?"}
-    M2B -- não --> M2C["Segue com contexto PARTIAL<br/>(regras de perfil não disparam)"]
-    M2B -- sim --> M3
-    M2C --> M3["Aplica as regras e soma os pontos"]
-    M3 --> M4["Publica a decisão<br/>fraud-decisions.v1"]
-    M4 --> M5{"Pontos ≥ 40?"}
-    M5 -- não --> MF(["Fim: sem alerta"])
-    M5 -- sim --> M6(["Publica o alerta<br/>fraud-alerts.v1<br/>segue para as notificações"])
-```
+![Fluxo de decisão do detection-engine](prints/fluxo-decisao-motor.png)
 
 ### 2.3 notification-service: quem é avisado
 
-```mermaid
-flowchart TB
-    I(["Alerta chega pelo Kafka<br/>fraud-alerts.v1"]) --> N1["Grava o alerta e<br/>as linhas de entrega"]
-    N1 --> N2["Avisa o antifraude<br/>(webhook)"]
-    N2 --> D1(["Antifraude recebe o caso"])
-    N1 --> N3{"Pontos ≥ 70?<br/>(severidade HIGH)"}
-    N3 -- não --> NF(["Fim: MEDIUM só vai<br/>ao antifraude"])
-    N3 -- sim --> N4["Busca o contato<br/>GET /v1/contacts/{accountId}"]
-    N4 --> N5["Push"]
-    N4 --> N6["E-mail"]
-    N5 --> N7{"Push<br/>entregue?"}
-    N7 -- sim --> D2(["Cliente recebe o aviso"])
-    N7 -- não --> N8["Fallback: SMS"]
-    N8 --> D2
-    N6 --> D2
-```
+![Fluxo de decisão do notification-service](prints/fluxo-decisao-notificacoes.png)
 **Faixas de severidade** (configuráveis sem redeploy por `PUT /v1/scoring`; padrão do ambiente local):
 
 | Pontos | Severidade | Quem é avisado |
@@ -186,24 +80,7 @@ flowchart TB
 
 Cada canal tem a sua própria proteção, então um provedor lento não atrasa os outros.
 
-```mermaid
-flowchart LR
-    A["Chamada ao canal<br/>⏱ 2 s"] --> B{"Deu certo?"}
-    B -- sim --> OK(["Entregue"])
-    B -- não --> C["Retentativa imediata<br/>até 3 tentativas<br/>espera 200 ms, depois 400 ms"]
-    C --> D{"Deu certo?"}
-    D -- sim --> OK
-    D -- não --> E["alerts.retry.1m"]
-    E --> F{"Deu certo?"}
-    F -- sim --> OK
-    F -- não --> G["alerts.retry.5m"]
-    G --> H{"Deu certo?"}
-    H -- sim --> OK
-    H -- não --> I["alerts.retry.30m"]
-    I --> J{"Deu certo?"}
-    J -- sim --> OK
-    J -- não --> K[["alerts.dlq<br/>reprocesso manual"]]
-```
+![Fluxo quando um canal falha](prints/fluxo-falha-canal.png)
 
 - **Circuit breaker por canal:** com 50% de falhas o canal abre por 30 s e para de receber chamadas, para não piorar a situação do provedor.
 - **Fallback:** se o **push** de um alerta HIGH falhar de vez, o aviso sai por **SMS**.
@@ -218,23 +95,7 @@ flowchart LR
 
 O motor não chama ninguém por HTTP durante a análise: tudo o que ele precisa já está em memória, alimentado por estes fluxos.
 
-```mermaid
-flowchart LR
-    subgraph REG["Regras (sem redeploy)"]
-        U["Analista / coordenador"] -->|"POST /v1/rules, :activate,<br/>PUT /v1/scoring ..."| RM["rule-management :8082"]
-        RM -->|"outbox (Postgres)"| DBZ["Debezium"]
-        DBZ -->|"rule-sets.v1"| ENG1["detection-engine"]
-    end
-
-    subgraph PER["Perfil do cliente"]
-        BK[("Banco legado<br/>de clientes")] -->|"CDC (Debezium)<br/>cdc.bank.*"| CS["customer-service :8083"]
-        CS -->|"customer-profile.v1"| ENG2["detection-engine"]
-    end
-
-    subgraph HIS["Histórico (go-live)"]
-        TS["transaction-service :8086"] -->|"transaction-history-backfill.v1"| ENG3["detection-engine"]
-    end
-```
+![Fluxos que acontecem em paralelo](prints/fluxo-paralelos.png)
 
 | Fluxo | Como chega ao motor | Quanto demora |
 |---|---|---|

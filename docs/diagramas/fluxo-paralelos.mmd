@@ -1,0 +1,15 @@
+flowchart LR
+    subgraph REG["Regras (sem redeploy)"]
+        U["Analista / coordenador"] -->|"POST /v1/rules, :activate,<br/>PUT /v1/scoring ..."| RM["rule-management :8082"]
+        RM -->|"outbox (Postgres)"| DBZ["Debezium"]
+        DBZ -->|"rule-sets.v1"| ENG1["detection-engine"]
+    end
+
+    subgraph PER["Perfil do cliente"]
+        BK[("Banco legado<br/>de clientes")] -->|"CDC (Debezium)<br/>cdc.bank.*"| CS["customer-service :8083"]
+        CS -->|"customer-profile.v1"| ENG2["detection-engine"]
+    end
+
+    subgraph HIS["Histórico (go-live)"]
+        TS["transaction-service :8086"] -->|"transaction-history-backfill.v1"| ENG3["detection-engine"]
+    end

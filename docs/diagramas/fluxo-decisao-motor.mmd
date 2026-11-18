@@ -1,0 +1,12 @@
+flowchart TB
+    I(["Comando chega pelo Kafka<br/>transaction-commands.v1"]) --> M1{"Já processada?<br/>(dedup por transactionId)"}
+    M1 -- sim --> MD(["Descarta a duplicata"])
+    M1 -- não --> M2["Monta o contexto:<br/>perfil do cliente, histórico<br/>e lista de bloqueio"]
+    M2 --> M2B{"Perfil<br/>disponível?"}
+    M2B -- não --> M2C["Segue com contexto PARTIAL<br/>(regras de perfil não disparam)"]
+    M2B -- sim --> M3
+    M2C --> M3["Aplica as regras e soma os pontos"]
+    M3 --> M4["Publica a decisão<br/>fraud-decisions.v1"]
+    M4 --> M5{"Pontos ≥ 40?"}
+    M5 -- não --> MF(["Fim: sem alerta"])
+    M5 -- sim --> M6(["Publica o alerta<br/>fraud-alerts.v1<br/>segue para as notificações"])
