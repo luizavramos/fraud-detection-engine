@@ -1,7 +1,7 @@
 # Motor de Detecção de Transações Suspeitas
 
 Motor de detecção de fraude em tempo real: recebe transações de serviços internos, aplica regras configuráveis
-(CEL) e gera alertas para o antifraude e para o cliente, com p99 ≤ 500 ms e 8.000/25.000 TPS (média/pico).
+(CEL) e gera alertas para o antifraude e para o cliente. Meta do case: p99 ≤ 500 ms com 8.000 TPS (média) e 25.000 (pico); a escala medida nesta entrega está em "Escala medida".
 
 - Serviços, arquitetura e fluxo BPMN: [docs/arquitetura-e-servicos.md](docs/arquitetura-e-servicos.md)
 - Fluxo de chamadas, da transação à notificação: [docs/fluxo-de-chamadas.md](docs/fluxo-de-chamadas.md)
@@ -137,7 +137,7 @@ O projeto segue uma estrutura de microsserviços, **um repositório por serviço
 | `notification-service` | Notificações ao antifraude e ao cliente (porta 8085; `--profile app`) |
 | `transaction-service` | Backfill de 90 dias de histórico para o motor (porta 8086; `--profile app`) |
 
-Provas e roteiros neste repositório: `infra/h5-acceptance.sh` (regras a quente), `infra/chaos-h6.sh` (derrubar uma instância do motor), `infra/mocks/smoke.sh` (simuladores dos provedores) e `infra/seed/blocklist.sh` (lista de bloqueio de demonstração).
+Provas e roteiros neste repositório: `infra/hot-rules-acceptance.sh` (regras a quente), `infra/chaos-engine.sh` (derrubar uma instância do motor), `infra/mocks/smoke.sh` (simuladores dos provedores) e `infra/seed/blocklist.sh` (lista de bloqueio de demonstração).
 
 **Código compartilhado.** `motor-fraude-parent`, `contracts`, `platform-commons`, `rules-kernel` e `platform-streams` são bibliotecas Maven versionadas (`0.1.0`) usadas pelos serviços. O caminho recomendado é instalá-las localmente, nessa ordem, como no "Passo a passo": `./mvnw install` em cada uma. As três primeiras também foram publicadas no GitHub Packages (que costuma exigir token em `~/.m2/settings.xml`, ver o README do pom pai).
 
@@ -171,8 +171,8 @@ novos exige subir de novo (`docker compose up -d connect bank-db`). Pode ser rod
 Se o Docker Desktop cair no meio (aconteceu várias vezes neste notebook), reinicie-o e rode o script de novo.
 
 **O que o script prova e o que não prova.** Prova o caminho de ponta a ponta com duas transações e os simuladores dos
-provedores. Não mede latência nem carga (ver "Teste de carga"), não exercita regras a quente (`infra/h5-acceptance.sh`) nem
-o caos (`infra/chaos-h6.sh`). Com `WITH_BACKFILL=1` prova o transporte do backfill (status `COMPLETED`, registros no
+provedores. Não mede latência nem carga (ver "Teste de carga"), não exercita regras a quente (`infra/hot-rules-acceptance.sh`) nem
+o caos (`infra/chaos-engine.sh`). Com `WITH_BACKFILL=1` prova o transporte do backfill (status `COMPLETED`, registros no
 tópico), mas **não confere que o motor usou o histórico**: isso está provado nos testes do `detection-engine` e no ensaio de verificação do backfill (`infra/backfill-verify.sh`).
 
 Se rodar no Git Bash do Windows: o script exporta `MSYS_NO_PATHCONV=1` (necessário para os caminhos `/opt/kafka/...` do

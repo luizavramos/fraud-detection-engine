@@ -4,7 +4,7 @@ set -eu
 RULES="${RULES_URL:-http://localhost:8082}"
 ENGINE="${ENGINE_URL:-http://localhost:8084}"
 LIMIT_SECONDS="${LIMIT_SECONDS:-35}"
-RULE="H5$(date +%s)"
+RULE="HOT$(date +%s)"
 ACCOUNT="acc_tok_h5$(date +%s)"
 KAFKA="docker compose exec -T kafka /opt/kafka/bin"
 export MSYS_NO_PATHCONV=1
@@ -33,7 +33,7 @@ identity() {
 counter=0
 send() {
   counter=$((counter + 1))
-  txid="h5-$(date +%s)-$counter-abcdef"
+  txid="hot-$(date +%s)-$counter-abcdef"
   now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   value='{"schemaVersion":1,"transactionId":"'"$txid"'","accountId":"'"$ACCOUNT"'","customerId":"cus_tok_h5000001","type":"PIX","amount":{"value":'"$1"',"currency":"BRL"},"counterparty":{"accountToken":"acc_tok_dest00h5","bankIspb":"60746948"},"channel":"MOBILE","deviceIdHash":"dev_h5device01","occurredAt":"'"$now"'"}'
   printf '%s|%s\n' "$ACCOUNT" "$value" | $KAFKA/kafka-console-producer.sh --bootstrap-server kafka:29092 --topic transaction-commands.v1 \
@@ -68,13 +68,13 @@ before="$(identity)"
 echo "identidade antes: $before"
 
 echo "1. criar e ativar uma regra nova ($RULE): amount > limit"
-analista POST /v1/rules '{"ruleId":"'"$RULE"'","expression":"tx.amount > params.limit","params":{"limit":100000},"paramOverrides":{},"weight":70,"reasonTemplate":"H5 acima de {params.limit}"}' >/dev/null
+analista POST /v1/rules '{"ruleId":"'"$RULE"'","expression":"tx.amount > params.limit","params":{"limit":100000},"paramOverrides":{},"weight":70,"reasonTemplate":"HOT acima de {params.limit}"}' >/dev/null
 coordenador POST "/v1/rules/$RULE/versions/1:activate" >/dev/null
 version_a="$(active_version)"
 wait_for 150000 "\"ruleId\":\"$RULE\"" "regra nova dispara"
 
 echo "2. mudar o threshold (limit 500000, nova versão da regra)"
-analista POST "/v1/rules/$RULE/versions" '{"expression":"tx.amount > params.limit","params":{"limit":500000},"paramOverrides":{},"weight":70,"reasonTemplate":"H5 acima de {params.limit}"}' >/dev/null
+analista POST "/v1/rules/$RULE/versions" '{"expression":"tx.amount > params.limit","params":{"limit":500000},"paramOverrides":{},"weight":70,"reasonTemplate":"HOT acima de {params.limit}"}' >/dev/null
 coordenador POST "/v1/rules/$RULE/versions/2:activate" >/dev/null
 version_b="$(active_version)"
 wait_for 150000 "\"ruleSetVersion\":$version_b" "conjunto com o novo threshold chegou"
