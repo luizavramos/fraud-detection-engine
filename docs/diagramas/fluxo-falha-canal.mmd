@@ -1,4 +1,4 @@
-flowchart LR
+flowchart TD
     A["Chamada ao canal<br/>⏱ 2 s"] --> B{"Deu certo?"}
     B -- sim --> OK(["Entregue"])
     B -- não --> C["Retentativa imediata<br/>até 3 tentativas<br/>espera 200 ms, depois 400 ms"]

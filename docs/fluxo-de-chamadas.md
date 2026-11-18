@@ -28,7 +28,13 @@ síncrono.
 
 ## Diagrama 1: sequência de chamadas
 
-![Diagrama de sequência das chamadas](prints/fluxo-sequencia.png)
+![Trecho 1: ingestão, do envio da transação ao 202](prints/fluxo-sequencia-1-ingestao.png)
+
+![Trecho 2: detecção, o motor decide e publica](prints/fluxo-sequencia-2-deteccao.png)
+
+![Trecho 3: notificação, o alerta chega ao antifraude e ao cliente](prints/fluxo-sequencia-3-notificacao.png)
+
+![Depois: o analista revisa os alertas](prints/fluxo-sequencia-4-analista.png)
 
 ### Os passos, um a um
 

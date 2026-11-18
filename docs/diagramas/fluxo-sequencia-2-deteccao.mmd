@@ -1,0 +1,11 @@
+sequenceDiagram
+    autonumber
+    participant K as Kafka
+    participant M as detection-engine :8084
+
+    Note over K,M: Trecho 2: detecção (assíncrono, p99 ≤ 500 ms)
+    K-->>M: entrega o comando
+    M->>M: descarta duplicata, monta o contexto<br/>(perfil + histórico + lista de bloqueio)
+    M->>M: aplica as regras em memória<br/>e soma os pontos
+    M-->>K: publica a decisão em fraud-decisions.v1
+    M-->>K: se pontos ≥ 40, publica o alerta<br/>em fraud-alerts.v1

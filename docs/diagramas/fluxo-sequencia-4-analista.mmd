@@ -1,0 +1,10 @@
+sequenceDiagram
+    autonumber
+    actor AN as Analista
+    participant N as notification-service :8085
+
+    Note over AN,N: Depois: o analista revisa
+    AN->>N: GET /v1/alerts?accountId=...&severity=HIGH
+    N-->>AN: lista de alertas (paginada)
+    AN->>N: POST /v1/alerts/{alertId}/feedback
+    N-->>AN: 201 Created

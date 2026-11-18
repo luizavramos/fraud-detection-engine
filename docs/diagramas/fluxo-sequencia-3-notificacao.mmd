@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    participant N as notification-service :8085
+    participant A as Antifraude legado
+    participant C as Serviço de contatos
+    participant P as Push / E-mail / SMS
+
+    Note over N,P: Trecho 3: notificação (cada canal por HTTP)
+    N->>N: lê o alerta do Kafka, grava no Postgres<br/>e cria a linha de entrega por canal
+    N->>A: POST /webhooks/fraud-alerts (⏱ 2 s)<br/>Idempotency-Key: alertId:ANTIFRAUD_WEBHOOK
+    A-->>N: 202
+    opt severidade HIGH (pontos ≥ 70)
+        N->>C: GET /v1/contacts/{accountId}
+        C-->>N: token do dispositivo, e-mail, telefone
+        N->>P: POST /v1/push (⏱ 2 s)<br/>Idempotency-Key: alertId:PUSH
+        P-->>N: 202
+        N->>P: POST /v1/email (⏱ 2 s)<br/>Idempotency-Key: alertId:EMAIL
+        P-->>N: 202
+    end

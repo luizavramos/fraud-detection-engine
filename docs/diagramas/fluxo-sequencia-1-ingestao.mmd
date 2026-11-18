@@ -1,0 +1,15 @@
+sequenceDiagram
+    autonumber
+    participant O as Origem (Pix, TED...)
+    participant R as receiver :8081
+    participant X as Redis
+    participant K as Kafka
+
+    Note over O,K: Trecho 1: ingestão (síncrono, termina em 202)
+    O->>R: POST /v1/transactions:evaluate<br/>X-Client-Id + Idempotency-Key
+    R->>R: valida origem, limite de taxa,<br/>tamanho e contrato (JSON Schema)
+    R->>X: SET NX transactionId (⏱ 5 ms)
+    X-->>R: primeira vez (ou já vista = DUPLICATE)
+    R-->>K: publica em transaction-commands.v1
+    K-->>R: ack (gravado)
+    R-->>O: 202 Accepted {status: ACCEPTED}
