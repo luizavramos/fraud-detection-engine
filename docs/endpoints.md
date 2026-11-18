@@ -13,7 +13,7 @@ Os marcados com 📄 vêm do **código e dos contratos** (o serviço não estava
 | [rule-management](#2-rule-management-porta-8082) | 8082 | API de regras, conjuntos de regras e scoring | HTTP Basic, com 3 papéis | `/swagger-ui.html` |
 | [customer-service](#3-customer-service-porta-8083) | 8083 | Só operação (saúde e métricas) | Nenhuma | `/swagger-ui.html` |
 | [detection-engine](#4-detection-engine-porta-8084) | 8084 | Só operação (saúde e métricas) | Nenhuma | `/swagger-ui.html` |
-| [notification-service](#5-notification-service-porta-8085) | 8085 | API do analista: alertas e feedback | **Nenhuma** (ver limitações) | `/swagger-ui.html` |
+| [notification-service](#5-notification-service-porta-8085) | 8085 | API do analista: alertas e feedback | **Nenhuma** | `/swagger-ui.html` |
 | [transaction-service](#6-transaction-service-portas-8086-e-8096) | 8086 e 8096 | Saúde e métricas (8086) e status do backfill (8096) | Nenhuma | `/swagger-ui.html` (porta 8086) |
 
 A interface Swagger do customer-service, do detection-engine e do transaction-service carrega os arquivos visuais de um CDN
@@ -550,10 +550,3 @@ Os serviços de detecção conversam por mensageria. Os contratos (JSON Schema) 
 | `transaction-commands.v1` | receiver → motor | O mesmo corpo do `POST /v1/transactions:evaluate`, mais headers `commandType`, `traceparent` e `receivedAt` |
 | `fraud-decisions.v1` | motor → auditoria | Decisão de cada transação (`NO_ALERT` ou `ALERT`), regras em sombra e as features usadas |
 | `fraud-alerts.v1` | motor → notification-service | Alerta: `alertId`, `severity`, `score`, regras disparadas com motivo, `ruleSetVersion`, `contextCompleteness` |
-
-## Limitações a ter em mente
-
-- **O notification-service não tem autenticação** no código local: qualquer um que chegue à porta 8085 lista alertas e dá feedback. O `X-Analyst` é só informativo, não é verificado. Em produção isso precisa de OIDC ou mTLS.
-- O rule-management usa **HTTP Basic com usuários em memória**: serve ao ambiente local, não a produção.
-- O receiver valida o `X-Client-Id` por **lista fixa**, sem segredo: é identificação, não autenticação forte.
-- As mensagens de `errors` do `400` do receiver vêm do validador, em inglês e **sem o nome do campo**; dá para melhorar.
