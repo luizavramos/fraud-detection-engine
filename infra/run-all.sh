@@ -49,7 +49,7 @@ package() {
   if [ "${BUILD:-0}" = "1" ] || [ -z "$jar" ]; then
     echo "  empacotando $1 ..."
     [ -d "$CODE/$1" ] || fail "repositório $1 não encontrado em $CODE (clone ao lado, ver README)"
-    (cd "$CODE/$1" && ./mvnw -q -DskipTests package) || fail "falha ao empacotar $1 (JAVA_HOME aponta para o JDK 21?)"
+    (cd "$CODE/$1" && env -u MSYS_NO_PATHCONV ./mvnw -q -DskipTests package) || fail "falha ao empacotar $1 (JAVA_HOME aponta para o JDK 21?)"
   fi
 }
 
