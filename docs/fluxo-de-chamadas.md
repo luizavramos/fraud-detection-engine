@@ -132,7 +132,5 @@ Se o **rule-management** cair, o motor segue com o último conjunto de regras (s
 - **Confirmado no código e na execução:** ordem das validações do receiver, tópicos e nomes, política de canais por severidade
   (MEDIUM só antifraude; HIGH antifraude, push e e-mail; SMS de fallback do push), chamadas de contatos e dos provedores, valores de
   timeout, retentativas e circuit breaker, e o fato de o motor ler as regras pelo tópico `rule-sets.v1` e não por HTTP.
-- **Do desenho, não medido aqui:** a meta de 500 ms ponta a ponta e os 8.000 TPS (ver `docs/resultados-carga.md`),
+- **Do desenho, não medido aqui:** a meta de 500 ms ponta a ponta e os 8.000 TPS,
   e a assinatura HMAC do webhook do antifraude.
-- **Desenho `fluxo-bpmn-sequencia.drawio` (raiz):** já reflete que o motor recebe as regras pelo tópico `rule-sets.v1`
-  (antes mostrava uma consulta HTTP a cada 30 s, que o código não faz).

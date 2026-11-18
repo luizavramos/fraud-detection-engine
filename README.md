@@ -261,8 +261,7 @@ Também roda com `./mvnw exec:java -Dexec.args="--tps 300 --duration 60s"` na pa
 | 500 | 0 | 104 ms |
 | 800 | 93% | colapso (o gerador sozinho usa 3,4 núcleos) |
 
-A **escala de referência local é 300 TPS**, com folga; 500 é o teto confortável. Detalhes e ressalvas em
-[docs/resultados-carga.md](docs/resultados-carga.md).
+A **escala de referência local é 300 TPS**, com folga; 500 é o teto confortável.
 
 Três cuidados ao medir localmente:
 - **Aqueça** (`--warmup 15s`): o primeiro minuto de um receiver recém-iniciado tem p99 de segundos (JIT).
