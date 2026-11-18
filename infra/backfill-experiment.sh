@@ -4,7 +4,7 @@ RATE="${RATE:-2000}"
 LIVE_START="${LIVE_START:-60}"
 LIVE_FILE="${LIVE_FILE:-/tmp/live.txt}"
 LIVE_PER_TICK="${LIVE_PER_TICK:-25}"
-export MSYS_NO_PATHCONV=1 BACKFILL_RATE_PER_SECOND="$RATE" TRANSACTION_SERVICE_CONTEXT="${TRANSACTION_SERVICE_CONTEXT:-../motor-fraude/transaction-service}"
+export MSYS_NO_PATHCONV=1 BACKFILL_RATE_PER_SECOND="$RATE" TRANSACTION_SERVICE_CONTEXT="${TRANSACTION_SERVICE_CONTEXT:-../transaction-service}"
 KAFKA="docker compose exec -T kafka /opt/kafka/bin"
 PROM="http://localhost:9090/api/v1/query"
 

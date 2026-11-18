@@ -18,8 +18,8 @@ Ao final, o `infra/run-all.sh` confere o resultado sozinho.
 **2. Clone os repositórios lado a lado**, todos na mesma pasta (o compose procura os serviços em `../receiver`, `../rule-management` etc.):
 
 ```bash
-mkdir motor-fraude-projeto && cd motor-fraude-projeto
-for r in motor-fraude motor-fraude-parent contracts platform-commons rules-kernel platform-streams \
+mkdir fraud-detection-project && cd fraud-detection-project
+for r in fraud-detection-engine motor-fraude-parent contracts platform-commons rules-kernel platform-streams \
          receiver rule-management customer-service detection-engine notification-service transaction-service \
          load-generator auditor; do
   git clone https://github.com/luizavramos/$r.git
@@ -34,10 +34,10 @@ for r in motor-fraude-parent contracts platform-commons rules-kernel platform-st
 done
 ```
 
-**4. Rode o processo completo** a partir do repositório `motor-fraude`:
+**4. Rode o processo completo** a partir do repositório `fraud-detection-engine`:
 
 ```bash
-cd motor-fraude
+cd fraud-detection-engine
 sh infra/run-all.sh
 ```
 
@@ -74,8 +74,8 @@ Não é preciso instalar Maven: cada repositório de código traz o Maven Wrappe
 ## Subir o ambiente (4 comandos)
 
 ```bash
-git clone https://github.com/luizavramos/motor-fraude.git
-cd motor-fraude
+git clone https://github.com/luizavramos/fraud-detection-engine.git
+cd fraud-detection-engine
 docker compose up -d
 bash infra/smoke.sh
 ```
@@ -119,11 +119,11 @@ se aparecer `JAVA_HOME not found`, aponte para o JDK 21 (PowerShell: `$env:JAVA_
 Os testes de integração usam Testcontainers e precisam do Docker.
 
 ## Estrutura: repositórios
-O projeto segue uma estrutura de microsserviços, **um repositório por serviço e por biblioteca**. Este repositório (`motor-fraude`) guarda a visão geral: specs, documentação, compose e infraestrutura local. Clone todos lado a lado:
+O projeto segue uma estrutura de microsserviços, **um repositório por serviço e por biblioteca**. Este repositório (`fraud-detection-engine`) guarda a visão geral: documentação, compose e infraestrutura local. Clone todos lado a lado:
 
 | Repositório | O que é |
 |---|---|
-| `motor-fraude` (este) | `docs/`, `docker-compose.yml` e `infra/` (tópicos, bancos, Prometheus, Grafana, `smoke.sh`) |
+| `fraud-detection-engine` (este) | `docs/`, `docker-compose.yml` e `infra/` (tópicos, bancos, Prometheus, Grafana, `smoke.sh`) |
 | `motor-fraude-parent` | Pom pai: versões, plugins e regras do Enforcer |
 | `contracts` | JSON Schemas versionados (estritos), records Java, `JsonCodec` e `ContractAssertions` |
 | `platform-commons` | Base comum sem Spring: logs JSON com dados pessoais mascarados, `traceparent`, `Clock` e regras ArchUnit |

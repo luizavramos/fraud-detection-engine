@@ -6,8 +6,8 @@ DURATION="${DURATION:-45s}"
 KILL_AFTER="${KILL_AFTER:-25}"
 VICTIM="${VICTIM:-motor-fraude-detection-engine-1}"
 WORK="${WORK:-/tmp/h6}"
-GENERATOR="${GENERATOR:-../motor-fraude/load-generator/target/load-generator.jar}"
-AUDITOR="${AUDITOR:-../motor-fraude/auditor/target/auditor.jar}"
+GENERATOR="${GENERATOR:-../load-generator/target/load-generator.jar}"
+AUDITOR="${AUDITOR:-../auditor/target/auditor.jar}"
 export MSYS_NO_PATHCONV=1
 
 mkdir -p "$WORK"
